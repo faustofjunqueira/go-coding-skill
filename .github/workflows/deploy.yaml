@@ -18,7 +18,7 @@ permissions:
 jobs:
   sanitize_image_tag:
     name: sanitize image tag
-    runs-on: small-runner
+    runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/heads') || startsWith(github.ref, 'refs/tags/') }}
     outputs:
       image_tag: ${{ steps.sanitizing_tag.outputs.image_tag }}
