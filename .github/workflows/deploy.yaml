@@ -1,0 +1,22 @@
+name: name-alpha / delivery
+run-name: name-alpha ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+
+on:
+  push:
+    tags:
+      - "name-alpha/v*" # release
+    branches:
+      - main
+    paths:
+      - "cmd/name-alpha*/**"
+      - "internal/name-alpha/**"
+      - "chart/*/name-alpha*/**"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: deploying
+              run:
+                echo "Deploy efetuado com sucesso!"
+            
