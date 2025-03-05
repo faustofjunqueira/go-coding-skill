@@ -1,1 +1,11 @@
 * @faustofjunqueira
+
+chart/api/name-alpha* @thisjulio @faustofjunqueira
+cmd/name-alpha* @thisjulio @faustofjunqueira
+internal/name-alpha* @thisjulio @faustofjunqueira
+
+chart/api/name-beta* @rodolfo-laurenti @faustofjunqueira
+cmd/name-beta* @rodolfo-laurenti @faustofjunqueira
+internal/name-beta* @rodolfo-laurenti @faustofjunqueira
+
+
