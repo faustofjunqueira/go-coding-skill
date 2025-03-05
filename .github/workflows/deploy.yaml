@@ -54,7 +54,7 @@ jobs:
           config-name: karavela_containers_release_drafter_template.yml
           name: ${{ github.ref_name }}
           tag: ${{ github.ref_name }}
-          commitish: ${{ github.ref_name }}
+          commitish: ${{ github.ref }}
           prerelease: ${{ endsWith(github.ref_name, '-*') && 'true' || 'false' }} # Testar criar uma tag que seja prerelease e uma que não seja
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
