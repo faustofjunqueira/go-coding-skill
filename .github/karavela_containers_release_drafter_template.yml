@@ -1,0 +1,55 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+filter-by-commitish: false
+prerelease-identifier: 'rc'
+
+categories:
+  - title: '🚀 Features'
+    labels: 
+      - 'enhancement'
+      - 'feature'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '🧰 Maintenance'
+    label: 'chore'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking-change'
+  minor:
+    labels:
+      - 'minor'
+      - 'enhancement'
+      - 'feature'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bug'
+      - 'bugfix'
+  default: minor
+
+autolabeler:
+  - label: 'breaking-change'
+    body: 
+      - '/.*\[.*(x|X).*\] \*Breaking change\*.*/'
+  - label: 'enhancement'
+    body: 
+      - '/.*\[.*(x|X).*\] Nova funcionalidade.*/'
+  - label: 'bug'
+    body: 
+      - '/.*\[.*(x|X).*\] Correção.*/'
+  - label: 'chore'
+    title: 
+      - '/^chore:.*/'
+
+template: |
+  ## Changelog for $RESOLVED_VERSION
+
+  $CHANGES
