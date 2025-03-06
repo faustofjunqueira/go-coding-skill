@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-Previous versions: [$$PREVIOUS_VERSIONS$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_SHA$$..$$TAG_SHA$$)
+Previous versions: [$$PREVIOUS_VERSIONS$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_TAG$$..$$TAG$$)
 `;
 
 const categoryTemplate = `
@@ -263,8 +263,8 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
       .replace("$$CATEGORIES$$", categories.join("\n"))
       .replace("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
       .replace("$$REPO_NAME$$", repoName)
-      .replace("$$PREVIOUS_SHA$$", previousTag.SHA)
-      .replace("$$TAG_SHA$$", tag.SHA);
+      .replace("$$PREVIOUS_TAG$$", completeTagName(previousTag))
+      .replace("$$TAG$$", completeTagName(tag));
   } catch (error) {
     throw new Error(`Failed to write template: ${error.message}`);
   }
