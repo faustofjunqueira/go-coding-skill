@@ -47,6 +47,8 @@ function loadTagLists(tag) {
       return [];
     }
 
+
+
     return tags
       .map(parseRefName) 
       .filter(t => t.namespace === tag.namespace) // tem que ser do mesmo namespace
@@ -84,6 +86,8 @@ function findPreviousTag(listTags, tag) {
     .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
     .sort(compareTags); // ordena pela versao mais recente
 
+  console.log("semverTags", semverTags);
+
   return semverTags.length > 0 ? semverTags[0] : null;
 }
 
@@ -109,6 +113,7 @@ function createsReleaseNotes({ github, context, core, glob }) {
     const previousTag = findPreviousTag(listTags, tag);
 
     console.log("tag", tag);
+    console.log("listTags", listTags);
     console.log("previousTag", previousTag);
 
     // Primeira tag, não tem Previous tag, entao como fica?
