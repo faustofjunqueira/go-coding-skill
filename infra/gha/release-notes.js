@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-Previous versions: [$$PREVIOUS_VERSIONS$$](github.com/$$REPO_NAME$$/compare/namespace/$$PREVIOUS_SHA$$..$$TAG_SHA$$)
+Previous versions: [$$PREVIOUS_VERSIONS$$](github.com/$$REPO_NAME$$/compare/$$PREVIOUS_SHA$$..$$TAG_SHA$$)
 `;
 
 const categoryTemplate = `
@@ -245,7 +245,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   }
 }
 
-function createsReleaseNotes({ github, context, core, glob }) {
+async function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
     const repoName = [context.repo.owner, context.repo.repo].join("/");
@@ -265,6 +265,15 @@ function createsReleaseNotes({ github, context, core, glob }) {
     const listTags = loadTagLists(tag);
     const previousTag = findPreviousTag(listTags, tag);
     const logs = categorizeLogs(loadCommitLogs(previousTag, tag));
+
+    const { data: compare } = await github.repos.compareCommits({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      base: previousTag,
+      head: latestTag
+    });
+
+    console.log("=> ", compare);
 
     const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
     core.summary.addRaw(releaseNotes).write();
