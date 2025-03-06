@@ -93,7 +93,7 @@ function findPreviousTag(listTags, tag) {
 
 function loadCommitLogs(previousTag, tag) {
   const commitLogs = execSync(
-    `git log ${completeTagName(previousTag)}..${completeTagName(tag)} --pretty=format:"%h;(%an);%s" | grep -E "\((${GLOBAL_SCOPE}|${tag.namespace})\):" -i`
+    `git log ${completeTagName(previousTag)}..${completeTagName(tag)} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${tag.namespace})\)" -i`
   );
   return commitLogs;
 }
