@@ -298,7 +298,20 @@ async function createsReleaseNotes({ github, context, core, glob }) {
     const logs = categorizeLogs(loadCommitLogs(repoName, previousTag, tag));
 
     const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
+
+    // escreve a release no summary
     core.summary.addRaw(releaseNotes).write();
+
+    // cria a release no github
+    const response = await github.repos.createRelease({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      tag_name: completeTagName(tag),
+      name: `${completeTagName(tag)}`,
+      body: releaseNotes,
+    })
+
+    console.log(response)
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
