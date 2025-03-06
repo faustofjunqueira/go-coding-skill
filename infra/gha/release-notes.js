@@ -292,7 +292,7 @@ async function createsReleaseNotes({ github, context, core, glob }) {
     const tag = parseRefName(refName);
     const listTags = loadTagLists(tag);
     const previousTag = findPreviousTag(listTags, tag);
-    const logs = categorizeLogs(loadCommitLogs(previousTag, tag));
+    const logs = categorizeLogs(loadCommitLogs(repoName, previousTag, tag));
 
     console.log(github.repos, github.repo);
 
