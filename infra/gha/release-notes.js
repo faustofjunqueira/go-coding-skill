@@ -8,6 +8,15 @@ const TAG_TYPE = {
   PATCH: 0b0010,
   PRE_RELEASE: 0b0001,
 };
+
+function execCommand(command) {
+  try {
+    return execSync(command, { encoding: "utf-8" }).trim();
+  } catch (error) {
+    throw new Error(`Failed to execute command: ${error.message}`);
+  }
+}
+
 function completeTagName(tag) {
   return `${tag.namespace}/${tag.version}`;
 }
@@ -43,9 +52,7 @@ function checkIfTagIsSemver(refName) {
 function loadTagLists(tag) {
   try {
     const tagPrefix = tag.namespace + "/v*";
-    const tags = execSync(`git tag -l "${tagPrefix}"`, { encoding: "utf-8" })
-      .trim()
-      .split("\n");
+    const tags = execCommand(`git tag -l "${tagPrefix}"`, { encoding: "utf-8" }).split("\n");
 
     if (tags.length === 0 || tags[0] === "") {
       return [];
@@ -92,10 +99,16 @@ function findPreviousTag(listTags, tag) {
 }
 
 function loadCommitLogs(previousTag, tag) {
-  const commitLogs = execSync(
-    `git log ${completeTagName(previousTag)}..${completeTagName(tag)} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${tag.namespace})\)" -i`
-  );
-  return commitLogs;
+  try {
+    const commitLogs = execCommand(
+      `git log ${completeTagName(previousTag)}..${completeTagName(tag)} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${tag.namespace})\)" -i`
+    ).split("\n");
+    
+    return commitLogs;
+  }
+  catch (error) {
+    return [];
+  }
 }
 
 function createsReleaseNotes({ github, context, core, glob }) {
