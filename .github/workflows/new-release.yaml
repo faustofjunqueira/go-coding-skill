@@ -38,7 +38,7 @@ jobs:
             - name: validate inputs
               run: |
                     if [ -z "${{ github.event.inputs.namespace }}" ]; then
-                        echo "namespace is required"
+                        echo "::error::namespace is required"
                         exit 1
                     fi
 
@@ -50,12 +50,12 @@ jobs:
                     if [ -n "${{ github.event.inputs.tag }}" ]; then count=$((count + 1)); fi
 
                     if [ $count -ne 1 ]; then
-                        echo "Only one of minor, hotfix, rc, or tag must be specified"
+                        echo "::error::Only one of minor, hotfix, rc, or tag must be specified"
                         exit 1
                     fi
 
                     if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
-                        echo "Invalid namespace: ./internal/${{ github.event.inputs.namespace }} does not exist"
+                        echo "::error::Invalid namespace: ./internal/${{ github.event.inputs.namespace }} does not exist"
                         exit 1
                     fi
             
