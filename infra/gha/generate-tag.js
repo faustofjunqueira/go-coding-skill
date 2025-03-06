@@ -45,7 +45,7 @@ function parseRefName(refName) {
 }
 function loadTagLists(namespace) {
   try {
-    const tagPrefix = tag.namespace + "/v*";
+    const tagPrefix = namespace + "/v*";
     const tags = execCommand(`git tag -l "${tagPrefix}"`, {
       encoding: "utf-8",
     }).split("\n");
