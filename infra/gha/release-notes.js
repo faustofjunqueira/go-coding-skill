@@ -181,7 +181,7 @@ function loadCommitLogs(repoName, previousTag, tag) {
       let category = LOG_CATEGORY.NONE;
 
       for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
-        if (cat.terms.some((term) => message.toLowerCase().startsWith(term))) {
+        if (cat.terms.some((term) => fullMessage.toLowerCase().startsWith(term))) {
           category = cat;
           continue;
         }
