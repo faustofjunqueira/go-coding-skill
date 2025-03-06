@@ -19,9 +19,10 @@ function checkIfTagIsSemver(refName) {
   return semverRegex.test(tag);
 }
 
-module.exports = ({ github, context, core, glob }) => {
+function createsReleaseNotes({ github, context, core, glob }) {
   try {
-    const ref = context.ref;
+    // const ref = context.ref;
+    const ref = "refs/tags/namespace/v1.2.3";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
 
@@ -35,9 +36,9 @@ module.exports = ({ github, context, core, glob }) => {
       throw new Error("ref is not a valid semver tag");
     }
 
-    console.log(parseRefName("namespace/v1.2.3"));
-    console.log(parseRefName("namespace/v1.2.3-0"));
-    console.log(parseRefName("namespace/v1.2.3-1"));
+    const tag = parseRefName(refName);
+
+    console.log(tag)
 
     // Verifica a tag
     // Verifica se major, minor, patch ou pre-release
@@ -57,3 +58,5 @@ module.exports = ({ github, context, core, glob }) => {
     core.setFailed(error.message);
   }
 };
+
+module.exports = createsReleaseNotes;
