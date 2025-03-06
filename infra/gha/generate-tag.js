@@ -9,6 +9,7 @@ const TAG_TYPE = {
 
 function execCommand(command) {
   try {
+    console.log("command", command);
     return execSync(command, { encoding: "utf-8" }).trim();
   } catch (error) {
     throw new Error(`Failed to execute command: ${error.message}`);
@@ -49,6 +50,8 @@ function loadTagLists(namespace) {
     const tags = execCommand(`git tag -l "${tagPrefix}"`, {
       encoding: "utf-8",
     }).split("\n");
+
+    console.log("output", tags)
 
     if (tags.length === 0 || tags[0] === "") {
       return [];
