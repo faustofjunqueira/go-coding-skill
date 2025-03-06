@@ -46,7 +46,7 @@ function loadTagLists(tag) {
     if (tags.length === 0 || tags[0] === "") {
       return [];
     }
-    
+
     return tags;
   } catch (error) {
     throw new Error(`Failed to fetch tags: ${error.message}`);
@@ -55,6 +55,7 @@ function loadTagLists(tag) {
 
 function findPreviousTag(tag) {
   const listTags = loadTagLists(core, tag);
+    console.log("==> ", listTags)
 
   if (preRelease) {
     // É a ultima hotfix ou minor gerada!
@@ -83,6 +84,7 @@ function createsReleaseNotes({ github, context, core, glob }) {
     }
 
     const tag = parseRefName(refName);
+    const previousTag = findPreviousTag(tag);
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
