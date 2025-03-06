@@ -9,6 +9,19 @@ const TAG_TYPE = {
   PRE_RELEASE: 0b0001,
 };
 
+const LOG_CATEGORY = {
+  FIX: { key: "fix", terms: ["fix", "bug", "hotfix"], title: "Fix"},
+  FEAT: { key: "feat", terms: ["feat", "feature"], title: "Feature"},
+  BUILD: { key: "build", terms: ["build", ], title: "Build"},
+  CHORE: { key: "chore", terms: ["chore", ], title: "Chore"},
+  CI: { key: "ci", terms: ["ci", ], title: "Continous Integration"},
+  DOCS: { key: "docs", terms: ["docs", ], title: "Documentation"},
+  STYLE: { key: "style", terms: ["style", ], title: "Style"},
+  REFACTOR: { key: "refactor", terms: ["refactor", ], title: "Refactor"},
+  PERF: { key: "perf", terms: ["perf", ], title: "Performance"},
+  TEST: { key: "test", terms: ["test", ], title: "Test"},
+};
+
 function execCommand(command) {
   try {
     return execSync(command, { encoding: "utf-8" }).trim();
@@ -52,17 +65,18 @@ function checkIfTagIsSemver(refName) {
 function loadTagLists(tag) {
   try {
     const tagPrefix = tag.namespace + "/v*";
-    const tags = execCommand(`git tag -l "${tagPrefix}"`, { encoding: "utf-8" }).split("\n");
+    const tags = execCommand(`git tag -l "${tagPrefix}"`, {
+      encoding: "utf-8",
+    }).split("\n");
 
     if (tags.length === 0 || tags[0] === "") {
       return [];
     }
 
     return tags
-      .map(parseRefName) 
-      .filter(t => t.namespace === tag.namespace) // tem que ser do mesmo namespace
-      .filter(t => t.version !== tag.version) // remove a propria tag em questao;
-
+      .map(parseRefName)
+      .filter((t) => t.namespace === tag.namespace) // tem que ser do mesmo namespace
+      .filter((t) => t.version !== tag.version); // remove a propria tag em questao;
   } catch (error) {
     throw new Error(`Failed to fetch tags: ${error.message}`);
   }
@@ -101,14 +115,50 @@ function findPreviousTag(listTags, tag) {
 function loadCommitLogs(previousTag, tag) {
   try {
     const commitLogs = execCommand(
-      `git log ${completeTagName(previousTag)}..${completeTagName(tag)} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${tag.namespace})\)" -i`
+      `git log ${completeTagName(previousTag)}..${completeTagName(
+        tag
+      )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${
+        tag.namespace
+      })\)" -i`
     ).split("\n");
-    
-    return commitLogs;
-  }
-  catch (error) {
+
+    return commitLogs.map((l) => {
+      const [message, hash, author] = l.split(";");
+
+      for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
+        if (cat.terms.some((term) => message.toLowerCase().startsWith(term))) {
+          return { message, hash, author, category: cat };
+        }
+      }
+
+      return {message, hash, author };
+    });
+  } catch (error) {
     return [];
   }
+}
+
+function categorizeLogs(logs) {
+  const sections = {
+    hotfixes: [],
+    features: [],
+    breakingChanges: [],
+    others: [],
+  };
+
+  logs.forEach((log) => {
+    if (log.message.startsWith("(hotfix)")) {
+      sections.hotfixes.push(log);
+    } else if (log.message.startsWith("(feature)")) {
+      sections.features.push(log);
+    } else if (log.message.startsWith("(breaking change)")) {
+      sections.breakingChanges.push(log);
+    } else {
+      sections.others.push(log);
+    }
+  });
+
+  return sections;
 }
 
 function createsReleaseNotes({ github, context, core, glob }) {
