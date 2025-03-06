@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-:monocle_face: Comparing: [$$PREVIOUS_VERSIONS$$ :repeat: $$VERSION$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_VERSIONS$$..$$VERSION$$)
+:monocle_face: Comparing: [$$PREVIOUS_VERSIONS$$ .. $$VERSION$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_VERSIONS$$..$$VERSION$$)
 `;
 
 const categoryTemplate = `
@@ -167,10 +167,12 @@ function loadCommitLogs(repoName, previousTag, tag) {
       let convercionalTag = "";
       let message = fullMessage;
       let pr = null
+      let scope = tag.namespace
 
       if (prCommitRegex.test(message)) {
         messageParsed = prCommitRegex.exec(message);
         convercionalTag = messageParsed[1];
+        scope = messageParsed[2];
         message = messageParsed[3];
         pr = {
           number: messageParsed[4],
@@ -192,6 +194,7 @@ function loadCommitLogs(repoName, previousTag, tag) {
           raw: fullMessage,
           text: message,
           tag: convercionalTag,
+          scope: scope,
           prNumber: prNumber,
         },
         pr: pr,
@@ -244,11 +247,16 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
         const logsTemplate = logs
           .map((log) => {
 
+            let message = `- ${log.message.text} by ${log.author.link} \`<no-pull-request>\``
             if (log.pr) {
-              return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
+              message = `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
             }
-            
-            return `- ${log.message.text} by ${log.author.link} \`<no-pull-request>\``
+
+            if (log.message.scope == GLOBAL_SCOPE) {
+              message += ` \`[monorepo]\``
+            }
+
+            return message;
           })
           .join("\n");
 
