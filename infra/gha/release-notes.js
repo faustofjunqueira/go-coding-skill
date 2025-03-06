@@ -356,8 +356,11 @@ async function createsReleaseNotes({ github, context, core, glob }) {
       body: releaseNotes,
     });
 
-    console.log(response);
+    if (response.status != 201) {
+      throw new Error(`Failed to create release: ${JSON.stringify(response)}`);
+    }
 
+    core.notice('Release created successfully: ' + response.data.html_url);
     // escreve a release no summary
     core.summary.addRaw(releaseNotes).write();
 
