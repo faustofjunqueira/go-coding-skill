@@ -154,7 +154,7 @@ async function generateTag(
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
       typeTag = TAG_TYPE.MAJOR;
     } else if (patch) {
-      filterTagBy = TAG_TYPE.PATCH;
+        typeTag = TAG_TYPE.PATCH;
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
     }
 
