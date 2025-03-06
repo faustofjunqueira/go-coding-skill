@@ -36,12 +36,19 @@ function parseRefName(refName) {
 
     return {
       namespace,
-      semver: { semver, type, major, minor, patch, preRelease },
+      semver: {
+        semver,
+        type,
+        major: Number(major),
+        minor: Number(minor),
+        patch: Number(patch),
+        preRelease: Number(preRelease),
+      },
       version() {
-        return `${this.namespace}/v${this.semver.major}.${this.semver.minor}.${this.semver.patch}${
-          this.semver.preRelease ? `-${this.semver.preRelease}` : ""
-        }`;
-      }
+        return `${this.namespace}/v${this.semver.major}.${this.semver.minor}.${
+          this.semver.patch
+        }${this.semver.preRelease ? `-${this.semver.preRelease}` : ""}`;
+      },
     };
   } catch (error) {
     throw new Error(`Failed to parse refName: ${error.message}`);
@@ -87,7 +94,7 @@ function findPreviousTag(namespace, listTags, filterTagBy) {
     if (listTags.length === 0) {
       return parseRefName(`refs/tags/${namespace}/v0.0.0`);
     }
-    
+
     const semverTags = listTags
       .filter(filterTagByType(filterTagBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
       .sort(compareTags); // ordena pela versao mais recente
@@ -99,23 +106,23 @@ function findPreviousTag(namespace, listTags, filterTagBy) {
 }
 
 function incrementsTag(previousTag, typeTag) {
-    const newTag = {...previousTag, type: typeTag};
+  const newTag = { ...previousTag, type: typeTag };
 
-    if (typeTag === TAG_TYPE.MAJOR) {
-        newTag.semver.major += 1;
-    } else if (typeTag === TAG_TYPE.MINOR) {
-        newTag.semver.minor += 1;
-    } else if (typeTag === TAG_TYPE.PATCH) {
-        newTag.semver.patch += 1;
-    } else if (typeTag === TAG_TYPE.PRE_RELEASE) {
-        if (!newTag.semver.preRelease && newTag.semver.preRelease !== 0) {
-            newTag.semver.preRelease = 0;
-        } else {
-            newTag.semver.preRelease += 1;
-        }
+  if (typeTag === TAG_TYPE.MAJOR) {
+    newTag.semver.major += 1;
+  } else if (typeTag === TAG_TYPE.MINOR) {
+    newTag.semver.minor += 1;
+  } else if (typeTag === TAG_TYPE.PATCH) {
+    newTag.semver.patch += 1;
+  } else if (typeTag === TAG_TYPE.PRE_RELEASE) {
+    if (!newTag.semver.preRelease && newTag.semver.preRelease !== 0) {
+      newTag.semver.preRelease = 0;
+    } else {
+      newTag.semver.preRelease += 1;
     }
-    
-    return newTag;
+  }
+
+  return newTag;
 }
 
 async function generateTag(
@@ -134,14 +141,14 @@ async function generateTag(
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
       typeTag = TAG_TYPE.PRE_RELEASE;
     } else if (minor) {
-        filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
-        typeTag = TAG_TYPE.MINOR
+      filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
+      typeTag = TAG_TYPE.MINOR;
     } else if (major) {
-        filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
-        typeTag = TAG_TYPE.MAJOR
+      filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
+      typeTag = TAG_TYPE.MAJOR;
     } else if (patch) {
-        filterTagBy = TAG_TYPE.PATCH;
-        filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
+      filterTagBy = TAG_TYPE.PATCH;
+      filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
     }
 
     const listtag = loadTagLists(namespace);
