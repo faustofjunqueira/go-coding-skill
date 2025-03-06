@@ -126,7 +126,6 @@ function incrementsTag(previousTag, typeTag) {
 }
 
 async function generateTag(
-  { github, context, core, glob },
   namespace,
   major,
   minor,
@@ -135,6 +134,14 @@ async function generateTag(
   tag
 ) {
   try {
+    console.log(
+        "namespace", namespace,
+        "major", major,
+        "minor", minor,
+        "patch", patch,
+        "preRelease", preRelease,
+    );
+
     let filterTagBy = 0;
     let typeTag = 0;
     if (preRelease) {

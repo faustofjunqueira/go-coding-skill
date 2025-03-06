@@ -87,7 +87,6 @@ jobs:
                   script: |
                     const script = require('./infra/gha/generate-tag.js')
                     console.log(await script(
-                      {github, context, core}, 
                       "${{ github.event.inputs.namespace }}", 
                       ${{ github.event.inputs.major }}, 
                       ${{ github.event.inputs.minor }}, 
