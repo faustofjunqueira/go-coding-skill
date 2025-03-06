@@ -10,9 +10,26 @@ function getVersionsFromTag(tag) {
     return {namespace, version, semver: {semver, major, minor, patch, preRelease}}
 }
 
+function checkIfTagIsSemver(tag) {
+    const semverRegex = /^([a-zA-Z0-9-_]+)\/v(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?$/;
+    return semverRegex.test(tag);
+}
+
 module.exports = ({github, context, core, glob}) => {
-    console.log("ref", context.ref)
-    console.log("ref_name", context.ref_name)
+    const ref = context.ref;
+    const [, type, ...refsName] = ref.split('/')
+    const refName = refsName.join('/');
+    
+    console.log(refName);
+
+    if (type == 'heads') {
+        throw new Error('This action only works with tags');
+    }
+    
+    if (!checkIfTagIsSemver(refName)) {
+        throw new Error('ref is not a valid semver tag');
+    }
+    
     
     console.log(getVersionsFromTag("namespace/v1.2.3"))
     console.log(getVersionsFromTag("namespace/v1.2.3-0"))
@@ -32,5 +49,4 @@ module.exports = ({github, context, core, glob}) => {
     // Se prerelease o PREVIOUS_TAG => É a ultima hotfix ou minor gerada!
     // Criar uma sessão para Hotfixes, no caso de minor e major. Esses são todos os hotfixes gerados para minor anterior
     // Separa os logs por seção!
-    return {github, context, core, glob}
 }
