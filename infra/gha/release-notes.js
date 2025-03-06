@@ -201,15 +201,14 @@ function categorizeLogs(logs) {
       [LOG_CATEGORY.TEST]: [],
     };
 
-    const categorizedLogs = logs
+    logs
       .sort((a, b) => a.hash.localeCompare(b.hash))
       .forEach((log) => {
         console.log("log", log, logsCategorized[log.category]);
         logsCategorized[log.category].push(log);
       });
 
-    console.log("categorizedLogs", categorizedLogs)
-    return categorizedLogs;
+    return logsCategorized;
   } catch (error) {
     throw new Error(`Failed to categorize logs: ${error.message}`);
   }
