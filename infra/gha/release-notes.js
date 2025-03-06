@@ -1,10 +1,10 @@
 const { execSync } = require("child_process");
 
 const TAG_TYPE = {
-  MAJOR: "major",
-  MINOR: "minor",
-  PATCH: "patch",
-  PRE_RELEASE: "pre-release",
+  MAJOR: 0b1000,
+  MINOR: 0b0100,
+  PATCH: 0b0010,
+  PRE_RELEASE: 0b0001,
 };
 
 function parseRefName(refName) {
@@ -53,17 +53,38 @@ function loadTagLists(tag) {
   }
 }
 
+function compareTags(tagX, tagY) {
+  if (tagX.semver.major !== tagY.semver.major) {
+    return tagY.semver.major - tagX.semver.major;
+  }
+  if (tagX.semver.minor !== tagY.semver.minor) {
+    return tagY.semver.minor - tagX.semver.minor;
+  }
+  if (tagY.semver.patch !== tagX.semver.patch) {
+    return tagY.semver.patch - tagX.semver.patch;
+  }
+  return tagY.semver.preRelease - tagX.semver.preRelease;
+}
+
+function filterTagByType(typeCompator) {
+  return (tag) => !!(tag.semver.type & typeCompator);
+}
+
 function findPreviousTag(tag) {
   const listTags = loadTagLists(tag);
-    console.log("==> ", listTags)
 
-  if (preRelease) {
-    // É a ultima hotfix ou minor gerada!
-  } else if (patch === "0") {
-    // Ultimo Minor gerado
-  } else {
-    // Ultimo hotfix desse minor em questão
+  // return semverTags.length > 0 ? semverTags[0] : null;
+  let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
+  if (tag.semver.type === TAG_TYPE.PATCH) {
+    filterBy = TAG_TYPE.PATCH;
   }
+
+  const semverTags = listTags
+    .map(parseRefName)
+    .filter(filterTagByType(filterBy))
+    .sort(compareTags);
+
+  return semverTags.length > 0 ? semverTags[0] : null;
 }
 
 function createsReleaseNotes({ github, context, core, glob }) {
@@ -85,6 +106,9 @@ function createsReleaseNotes({ github, context, core, glob }) {
 
     const tag = parseRefName(refName);
     const previousTag = findPreviousTag(tag);
+
+    console.log("tag", tag);
+    console.log("previousTag", previousTag);
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
