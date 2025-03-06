@@ -248,7 +248,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
               return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
             }
             
-            return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} \`<no-pull-request>\``
+            return `- ${log.message.text} by ${log.author.link} \`<no-pull-request>\``
           })
           .join("\n");
 
@@ -262,7 +262,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
       .replace("$$VERSION$$", completeTagName(tag))
       .replace("$$CATEGORIES$$", categories.join("\n"))
       .replace("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
-      .replace("$$REPO_NAME$$", repoName.split("/")[0])
+      .replace("$$REPO_NAME$$", repoName)
       .replace("$$PREVIOUS_SHA$$", previousTag.SHA)
       .replace("$$TAG_SHA$$", tag.SHA);
   } catch (error) {
