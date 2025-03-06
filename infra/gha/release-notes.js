@@ -171,7 +171,7 @@ function loadCommitLogs(repoName, previousTag, tag) {
       if (prCommitRegex.test(message)) {
         messageParsed = prCommitRegex.exec(message);
         convercionalTag = messageParsed[1];
-        message = message[3];
+        message = messageParsed[3];
         pr = {
           number: messageParsed[4],
           link: `https://github.com/${repoName}/pull/${messageParsed[4]}`
