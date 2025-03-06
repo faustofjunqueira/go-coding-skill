@@ -55,8 +55,11 @@ jobs:
                     fi
 
                     if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
-                        echo "::error::Invalid namespace: ./internal/${{ github.event.inputs.namespace }} does not exist"
+                        echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist"
                         exit 1
                     fi
+
+                    echo "${{ github.event.inputs.minor }} | ${{ github.event.inputs.hotfix }} |  ${{ github.event.inputs.rc }} | ${{ github.event.inputs.tag }}"
             
 
+                    
