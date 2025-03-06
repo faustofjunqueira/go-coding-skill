@@ -274,7 +274,7 @@ async function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
     const repoName = [context.repo.owner, context.repo.repo].join("/");
-    const ref = "refs/tags/namespace/v1.5.0";
+    const ref = "refs/tags/namespace/v1.6.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
 
