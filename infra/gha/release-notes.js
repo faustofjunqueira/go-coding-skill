@@ -92,10 +92,10 @@ function checkIfTagIsSemver(refName) {
   }
 }
 
-function getSHA(tag) {
+function getSHA(refName) {
   try {
     return execCommand(
-      `git rev-parse --short=${SHA_SIZE} ${completeTagName(tag)}`
+      `git rev-parse --short=${SHA_SIZE} ${refName}`
     );
   } catch (error) {
     throw new Error(`Failed to fetch SHA: ${error.message}`);
@@ -213,36 +213,34 @@ function categorizeLogs(logs) {
 
 function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   try {
+    const categories = Object.entries(categorizeLogs)
+      .map(([category, logs]) => {
+        if (logs.length === 0) {
+          return "";
+        }
+        const logsTemplate = logs
+          .map((log) => {
+            return logTemplate
+              .replace("$$HASH$$", log.hash)
+              .replace("$$MESSAGE$$", log.message)
+              .replace("$$AUTHOR$$", log.author);
+          })
+          .join("\n");
 
-  
-  const categories = Object.entries(categorizeLogs)
-    .map(([category, logs]) => {
-      if (logs.length === 0) {
-        return "";
-      }
-      const logsTemplate = logs
-        .map((log) => {
-          return logTemplate
-            .replace("$$HASH$$", log.hash)
-            .replace("$$MESSAGE$$", log.message)
-            .replace("$$AUTHOR$$", log.author);
-        })
-        .join("\n");
+        return categoryTemplate
+          .replace("$$CATEGORY_TITLE$$", category.title)
+          .replace("$$LOGS$$", logsTemplate);
+      })
+      .filter((f) => f !== "");
 
-      return categoryTemplate
-        .replace("$$CATEGORY_TITLE$$", category.title)
-        .replace("$$LOGS$$", logsTemplate);
-    })
-    .filter((f) => f !== "");
-
-  return templateMD
-    .replace("$$VERSION$$", completeTagName(tag))
-    .replace("$$CATEGORIES$$", categories.join("\n"))
-    .replace("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
-    .replace("$$REPO_NAME$$", repoName.split("/")[0])
-    .replace("$$PREVIOUS_SHA$$", previousTag.SHA)
-    .replace("$$TAG_SHA$$", tag.SHA);
-  }catch(error) {
+    return templateMD
+      .replace("$$VERSION$$", completeTagName(tag))
+      .replace("$$CATEGORIES$$", categories.join("\n"))
+      .replace("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
+      .replace("$$REPO_NAME$$", repoName.split("/")[0])
+      .replace("$$PREVIOUS_SHA$$", previousTag.SHA)
+      .replace("$$TAG_SHA$$", tag.SHA);
+  } catch (error) {
     throw new Error(`Failed to write template: ${error.message}`);
   }
 }
