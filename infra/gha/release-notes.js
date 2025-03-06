@@ -27,15 +27,55 @@ const TAG_TYPE = {
 
 const LOG_CATEGORY = {
   NONE: { key: "NONE", terms: [], title: "Others", icon: ":stop_sign:" },
-  FIX: { key: "FIX", terms: ["fix", "bug", "hotfix"], title: "Fix", icon: ":bug:" },
-  FEAT: { key: "FEAT", terms: ["feat", "feature"], title: "Feature", icon: ":rocket:" },
-  BUILD: { key: "BUILD", terms: ["build"], title: "Build", icon: ":building_construction:" },
+  FIX: {
+    key: "FIX",
+    terms: ["fix", "bug", "hotfix"],
+    title: "Fix",
+    icon: ":bug:",
+  },
+  FEAT: {
+    key: "FEAT",
+    terms: ["feat", "feature"],
+    title: "Feature",
+    icon: ":rocket:",
+  },
+  BUILD: {
+    key: "BUILD",
+    terms: ["build"],
+    title: "Build",
+    icon: ":building_construction:",
+  },
   CHORE: { key: "CHORE", terms: ["chore"], title: "Chore", icon: ":toolbox:" },
-  CI: { key: "CI", terms: ["ci"], title: "Continous Integration", icon: ":dna:" },
-  DOCS: { key: "DOCS", terms: ["docs"], title: "Documentation", icon: ":page_with_curl:" },
-  STYLE: { key: "STYLE", terms: ["style"], title: "Style", icon: ":paintbrush:" },
-  REFACTOR: { key: "REFACTOR", terms: ["refactor"], title: "Refactor", icon: ":toolbox:" },
-  PERF: { key: "PERF", terms: ["perf"], title: "Performance", icon: ":fast_forward:" },
+  CI: {
+    key: "CI",
+    terms: ["ci"],
+    title: "Continous Integration",
+    icon: ":dna:",
+  },
+  DOCS: {
+    key: "DOCS",
+    terms: ["docs"],
+    title: "Documentation",
+    icon: ":page_with_curl:",
+  },
+  STYLE: {
+    key: "STYLE",
+    terms: ["style"],
+    title: "Style",
+    icon: ":paintbrush:",
+  },
+  REFACTOR: {
+    key: "REFACTOR",
+    terms: ["refactor"],
+    title: "Refactor",
+    icon: ":toolbox:",
+  },
+  PERF: {
+    key: "PERF",
+    terms: ["perf"],
+    title: "Performance",
+    icon: ":fast_forward:",
+  },
   TEST: { key: "TEST", terms: ["test"], title: "Test", icon: ":test_tube:" },
 };
 
@@ -157,7 +197,11 @@ function loadCommitLogs(repoName, previousTag, tag) {
     const prCommitRegex = /^([a-zA-Z]+)\(([a-zA-Z-]+)\): (.+)\(#([0-9]+)\)$/;
 
     const commitLogs = execCommand(
-      `git log ${completeTagName(previousTag)}..${completeTagName( tag )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${ tag.namespace })\)" -i`
+      `git log ${completeTagName(previousTag)}..${completeTagName(
+        tag
+      )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${
+        tag.namespace
+      })\)" -i`
     ).split("\n");
 
     const logs = commitLogs.map((l) => {
@@ -166,8 +210,8 @@ function loadCommitLogs(repoName, previousTag, tag) {
       let prNumber = 0;
       let convercionalTag = "";
       let message = fullMessage;
-      let pr = null
-      let scope = tag.namespace
+      let pr = null;
+      let scope = tag.namespace;
 
       if (prCommitRegex.test(message)) {
         messageParsed = prCommitRegex.exec(message);
@@ -176,14 +220,16 @@ function loadCommitLogs(repoName, previousTag, tag) {
         message = messageParsed[3];
         pr = {
           number: messageParsed[4],
-          link: `https://github.com/${repoName}/pull/${messageParsed[4]}`
-        }
+          link: `https://github.com/${repoName}/pull/${messageParsed[4]}`,
+        };
       }
 
       let category = LOG_CATEGORY.NONE;
 
       for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
-        if (cat.terms.some((term) => fullMessage.toLowerCase().startsWith(term))) {
+        if (
+          cat.terms.some((term) => fullMessage.toLowerCase().startsWith(term))
+        ) {
           category = cat;
           continue;
         }
@@ -201,7 +247,7 @@ function loadCommitLogs(repoName, previousTag, tag) {
         sha: sha,
         author: {
           author,
-          link: "@"+author
+          link: "@" + author,
         },
         category: category,
       };
@@ -246,14 +292,13 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
 
         const logsTemplate = logs
           .map((log) => {
-            console.log(log.message)
-            let message = `- ${log.message.text} by ${log.author.link} \`<no-pull-request>\` :exclamation:`
+            let message = `- ${log.message.text} by ${log.author.link} \`<no-pull-request>\` :exclamation:`;
             if (log.pr) {
-              message = `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
+              message = `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`;
             }
 
             if (log.message.scope == GLOBAL_SCOPE) {
-              message += ` \`[monorepo]\``
+              message += ` \`[monorepo]\``;
             }
 
             return message;
@@ -261,7 +306,10 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
           .join("\n");
 
         return categoryTemplate
-          .replaceAll("$$CATEGORY_TITLE$$", `${category.icon} ${category.title}`)
+          .replaceAll(
+            "$$CATEGORY_TITLE$$",
+            `${category.icon} ${category.title}`
+          )
           .replaceAll("$$LOGS$$", logsTemplate);
       })
       .filter((f) => f !== "");
@@ -299,19 +347,19 @@ async function createsReleaseNotes({ github, context, core, glob }) {
 
     const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
 
-    // escreve a release no summary
-    core.summary.addRaw(releaseNotes).write();
-
-    // cria a release no github
-    const response = await github.repos.createRelease({
+    // cria a release no github    
+    const response = await github.rest.repos.createRelease({
       owner: context.repo.owner,
       repo: context.repo.repo,
       tag_name: completeTagName(tag),
       name: `${completeTagName(tag)}`,
       body: releaseNotes,
-    })
+    });
 
-    console.log(response)
+    console.log(response);
+
+    // escreve a release no summary
+    core.summary.addRaw(releaseNotes).write();
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
