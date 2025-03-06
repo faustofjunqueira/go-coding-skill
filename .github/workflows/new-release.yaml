@@ -59,7 +59,26 @@ jobs:
                         exit 1
                     fi
 
+                    if [ -n "${{ github.event.inputs.tag }}" ]; then
+                        if ! echo "${{ github.event.inputs.tag }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$'; then
+                            echo "::error::Invalid tag format: ${{ github.event.inputs.tag }}. Must be a valid semver (e.g., v0.0.0-0)"
+                            exit 1
+                        fi
+
+                        if git rev-parse "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}" >/dev/null 2>&1; then
+                            echo "::error::Tag already exists: ${{ github.event.inputs.tag }} to namespace ${{ github.event.inputs.namespace }} "
+                            exit 1
+                        fi
+                    fi
+
                     echo "${{ github.event.inputs.minor }} | ${{ github.event.inputs.hotfix }} |  ${{ github.event.inputs.rc }} | ${{ github.event.inputs.tag }}"
             
+            - name: generate
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.TOKEN }}
+                  script: |
+                      console.log(${{ github.event.inputs.minor }}, ${{ github.event.inputs.hotfix }},  ${{ github.event.inputs.rc }}, "${{ github.event.inputs.tag }}")
+          
 
                     
