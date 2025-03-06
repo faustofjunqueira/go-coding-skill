@@ -1,12 +1,16 @@
 const { execSync } = require("child_process");
 
+const GLOBAL_SCOPE = "stncard-go";
+
 const TAG_TYPE = {
   MAJOR: 0b1000,
   MINOR: 0b0100,
   PATCH: 0b0010,
   PRE_RELEASE: 0b0001,
 };
-
+function completeTagName(tag) {
+  return `${tag.namespace}/${tag.version}`;
+}
 function parseRefName(refName) {
   const [namespace, version] = refName.split("/");
   const [_, semver] = version.split("v");
@@ -87,10 +91,17 @@ function findPreviousTag(listTags, tag) {
   return semverTags.length > 0 ? semverTags[0] : null;
 }
 
+function loadCommitLogs(previousTag, tag) {
+  const commitLogs = execSync(
+    `git log ${completeTagName(previousTag)}..${completeTagName(tag)} --pretty=format:"%h;(%an);%s" | grep -E "\((${GLOBAL_SCOPE}|${tag.namespace})\):" -i`
+  );
+  return commitLogs;
+}
+
 function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
-    const ref = "refs/tags/namespace/v1.1.2";
+    const ref = "refs/tags/namespace/v1.3.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
 
@@ -107,10 +118,12 @@ function createsReleaseNotes({ github, context, core, glob }) {
     const tag = parseRefName(refName);
     const listTags = loadTagLists(tag);
     const previousTag = findPreviousTag(listTags, tag);
+    const logs = loadCommitLogs(previousTag, tag);
 
     console.log("tag", tag);
     console.log("listTags", listTags);
     console.log("previousTag", previousTag);
+    console.log("logs", logs);
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
