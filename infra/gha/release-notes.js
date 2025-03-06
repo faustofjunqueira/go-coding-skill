@@ -215,6 +215,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   try {
     const categories = Object.entries(categorizeLogs)
       .map(([category, logs]) => {
+        console.log(category.title);
         if (logs.length === 0) {
           return "";
         }
