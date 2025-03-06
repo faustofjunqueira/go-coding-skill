@@ -39,15 +39,16 @@ function checkIfTagIsSemver(refName) {
 function loadTagLists(tag) {
   try {
     const tagPrefix = tag.namespace + "/v*";
+    console.log(`git tag -l "${tagPrefix}"`)
     const tags = execSync(`git tag -l "${tagPrefix}"`, { encoding: "utf-8" })
       .trim()
       .split("\n");
 
+    console.log("output", tags);
+
     if (tags.length === 0 || tags[0] === "") {
       return [];
     }
-
-
 
     return tags
       .map(parseRefName) 
