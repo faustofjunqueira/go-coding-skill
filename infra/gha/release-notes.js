@@ -188,23 +188,23 @@ function loadCommitLogs(previousTag, tag) {
 function categorizeLogs(logs) {
   try {
     const logsCategorized = {
-      [LOG_CATEGORY.NONE]: [],
-      [LOG_CATEGORY.FIX]: [],
-      [LOG_CATEGORY.FEAT]: [],
-      [LOG_CATEGORY.BUILD]: [],
-      [LOG_CATEGORY.CHORE]: [],
-      [LOG_CATEGORY.CI]: [],
-      [LOG_CATEGORY.DOCS]: [],
-      [LOG_CATEGORY.STYLE]: [],
-      [LOG_CATEGORY.REFACTOR]: [],
-      [LOG_CATEGORY.PERF]: [],
-      [LOG_CATEGORY.TEST]: [],
+      [LOG_CATEGORY.NONE.key]: [],
+      [LOG_CATEGORY.FIX.key]: [],
+      [LOG_CATEGORY.FEAT.key]: [],
+      [LOG_CATEGORY.BUILD.key]: [],
+      [LOG_CATEGORY.CHORE.key]: [],
+      [LOG_CATEGORY.CI.key]: [],
+      [LOG_CATEGORY.DOCS.key]: [],
+      [LOG_CATEGORY.STYLE.key]: [],
+      [LOG_CATEGORY.REFACTOR.key]: [],
+      [LOG_CATEGORY.PERF.key]: [],
+      [LOG_CATEGORY.TEST.key]: [],
     };
 
     logs
       .sort((a, b) => a.hash.localeCompare(b.hash))
       .forEach((log) => {
-        logsCategorized[log.category].push(log);
+        logsCategorized[log.category.key].push(log);
       });
 
     return logsCategorized;
