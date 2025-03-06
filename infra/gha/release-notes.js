@@ -54,7 +54,7 @@ function loadTagLists(tag) {
 }
 
 function findPreviousTag(tag) {
-  const listTags = loadTagLists(core, tag);
+  const listTags = loadTagLists(tag);
     console.log("==> ", listTags)
 
   if (preRelease) {
