@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-:monocle_face: Comparing: [$$PREVIOUS_VERSIONS$$ .. $$VERSION$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_VERSIONS$$..$$VERSION$$)
+:monocle_face: Compare: [$$PREVIOUS_VERSIONS$$ .. $$VERSION$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_VERSIONS$$..$$VERSION$$)
 `;
 
 const categoryTemplate = `
