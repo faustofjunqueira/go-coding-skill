@@ -134,13 +134,13 @@ async function generateTag(
   tag
 ) {
   try {
-    console.log(
-        "namespace", namespace,
-        "major", major,
-        "minor", minor,
-        "patch", patch,
-        "preRelease", preRelease,
-    );
+    // console.log(
+    //     "namespace", namespace,
+    //     "major", major,
+    //     "minor", minor,
+    //     "patch", patch,
+    //     "preRelease", preRelease,
+    // );
 
     let filterTagBy = 0;
     let typeTag = 0;
@@ -157,8 +157,6 @@ async function generateTag(
         typeTag = TAG_TYPE.PATCH;
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
     }
-
-    console.log("type", typeTag)
 
     const listtag = loadTagLists(namespace);
     console.log("listtag", listtag.map((t) => t.version()))
