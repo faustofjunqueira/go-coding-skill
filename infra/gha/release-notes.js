@@ -183,9 +183,8 @@ function createsReleaseNotes({ github, context, core, glob }) {
     const previousTag = findPreviousTag(listTags, tag);
     const logs = loadCommitLogs(previousTag, tag);
 
-    console.log("tag", tag);
-    console.log("listTags", listTags);
-    console.log("previousTag", previousTag);
+    console.log("tag", tag.version);
+    console.log("previousTag", previousTag.version);
     console.log("logs", logs);
 
     // Primeira tag, não tem Previous tag, entao como fica?
