@@ -223,7 +223,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
             return logTemplate
               .replace("$$HASH$$", log.hash)
               .replace("$$MESSAGE$$", log.message)
-              .replace("@$$AUTHOR$$", log.author);
+              .replace("$$AUTHOR$$", `@${log.author}`);
           })
           .join("\n");
 
