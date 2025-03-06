@@ -204,7 +204,6 @@ function categorizeLogs(logs) {
     logs
       .sort((a, b) => a.hash.localeCompare(b.hash))
       .forEach((log) => {
-        console.log("log", log, logsCategorized[log.category]);
         logsCategorized[log.category].push(log);
       });
 
@@ -216,13 +215,16 @@ function categorizeLogs(logs) {
 
 function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   try {
-    console.log(repoName, previousTag, tag, categorizeLogs)
+    
+    Object.entries(categorizeLogs).forEach(([category, logs]) => {console.log(category, logs)});
     const categories = Object.entries(categorizeLogs)
-      .map(([category, logs]) => {
-        console.log("=>", category, logs);
+      .map(([categoryKey, logs]) => {
+        const category = LOG_CATEGORY[categoryKey];
+
         if (logs.length === 0) {
           return "";
         }
+        
         const logsTemplate = logs
           .map((log) => {
             return logTemplate
