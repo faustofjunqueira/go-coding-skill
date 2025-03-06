@@ -248,7 +248,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
         const logsTemplate = logs
           .map((log) => {
             if (log.pr) {
-              return `- ``${log.message.tag}`` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
+              return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
             }
             
             return `- ``${log.message.tag}`` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
