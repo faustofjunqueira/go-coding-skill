@@ -37,7 +37,6 @@ function parseRefName(refName) {
     return {
       namespace,
       version,
-      SHA: getSHA(refName),
       semver: { semver, type, major, minor, patch, preRelease },
     };
   } catch (error) {
