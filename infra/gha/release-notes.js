@@ -168,17 +168,16 @@ function loadCommitLogs(previousTag, tag) {
 
     const logs = commitLogs.map((l) => {
       const [message, hash, author] = l.split(";");
-
+      
       for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
         if (cat.terms.some((term) => message.toLowerCase().startsWith(term))) {
           return { message, hash, author, category: cat };
         }
       }
 
-      return { message, hash, author };
+      return { message, hash, author, category: LOG_CATEGORY.NONE };
     });
 
-    console.log("logs", logs);
     return logs;
   } catch (error) {
     console.error(`Failed to fetch commit logs: ${error.message}`);
@@ -205,9 +204,8 @@ function categorizeLogs(logs) {
     const categorizedLogs = logs
       .sort((a, b) => a.hash.localeCompare(b.hash))
       .forEach((log) => {
-        if (log.category) {
-          logsCategorized[log.category].push(log);
-        }
+        console.log("log", log, logsCategorized[log.category]);
+        logsCategorized[log.category].push(log);
       });
 
     console.log("categorizedLogs", categorizedLogs)
