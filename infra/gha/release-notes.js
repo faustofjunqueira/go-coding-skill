@@ -1,7 +1,7 @@
 const { execSync } = require("child_process");
 
 const templateMD = `
-## Changelog for $$VERSION$$
+## :anchor: Changelog for $$VERSION$$
 
 $$CATEGORIES$$
 
@@ -26,17 +26,17 @@ const TAG_TYPE = {
 };
 
 const LOG_CATEGORY = {
-  NONE: { key: "NONE", terms: [], title: "Others" },
-  FIX: { key: "FIX", terms: ["fix", "bug", "hotfix"], title: "Fix" },
-  FEAT: { key: "FEAT", terms: ["feat", "feature"], title: "Feature" },
-  BUILD: { key: "BUILD", terms: ["build"], title: "Build" },
-  CHORE: { key: "CHORE", terms: ["chore"], title: "Chore" },
-  CI: { key: "CI", terms: ["ci"], title: "Continous Integration" },
-  DOCS: { key: "DOCS", terms: ["docs"], title: "Documentation" },
-  STYLE: { key: "STYLE", terms: ["style"], title: "Style" },
-  REFACTOR: { key: "REFACTOR", terms: ["refactor"], title: "Refactor" },
-  PERF: { key: "PERF", terms: ["perf"], title: "Performance" },
-  TEST: { key: "TEST", terms: ["test"], title: "Test" },
+  NONE: { key: "NONE", terms: [], title: "Others", icon: ":stop_sign:" },
+  FIX: { key: "FIX", terms: ["fix", "bug", "hotfix"], title: "Fix", icon: ":bug:" },
+  FEAT: { key: "FEAT", terms: ["feat", "feature"], title: "Feature", icon: ":rocket:" },
+  BUILD: { key: "BUILD", terms: ["build"], title: "Build", icon: ":building_construction:" },
+  CHORE: { key: "CHORE", terms: ["chore"], title: "Chore", icon: ":toolbox:" },
+  CI: { key: "CI", terms: ["ci"], title: "Continous Integration", icon: ":dna:" },
+  DOCS: { key: "DOCS", terms: ["docs"], title: "Documentation", icon: ":page_with_curl:" },
+  STYLE: { key: "STYLE", terms: ["style"], title: "Style", icon: ":paintbrush:" },
+  REFACTOR: { key: "REFACTOR", terms: ["refactor"], title: "Refactor", icon: ":toolbox:" },
+  PERF: { key: "PERF", terms: ["perf"], title: "Performance", icon: ":fast_forward:" },
+  TEST: { key: "TEST", terms: ["test"], title: "Test", icon: ":test_tube:" },
 };
 
 function execCommand(command) {
