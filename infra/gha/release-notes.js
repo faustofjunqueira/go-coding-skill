@@ -166,7 +166,7 @@ function loadCommitLogs(previousTag, tag) {
       })\)" -i`
     ).split("\n");
 
-    return commitLogs.map((l) => {
+    const logs = commitLogs.map((l) => {
       const [message, hash, author] = l.split(";");
 
       for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
@@ -177,6 +177,9 @@ function loadCommitLogs(previousTag, tag) {
 
       return { message, hash, author };
     });
+
+    console.log("logs", logs);
+    return logs;
   } catch (error) {
     console.error(`Failed to fetch commit logs: ${error.message}`);
     return [];
@@ -199,13 +202,16 @@ function categorizeLogs(logs) {
       [LOG_CATEGORY.TEST]: [],
     };
 
-    return logs
+    const categorizedLogs = logs
       .sort((a, b) => a.hash.localeCompare(b.hash))
       .forEach((log) => {
         if (log.category) {
           logsCategorized[log.category].push(log);
         }
       });
+
+    console.log("categorizedLogs", categorizedLogs)
+    return categorizedLogs;
   } catch (error) {
     throw new Error(`Failed to categorize logs: ${error.message}`);
   }
