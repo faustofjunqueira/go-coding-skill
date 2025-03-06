@@ -28,17 +28,17 @@ const TAG_TYPE = {
 };
 
 const LOG_CATEGORY = {
-  NONE: { key: "none", terms: [], title: "Others" },
-  FIX: { key: "fix", terms: ["fix", "bug", "hotfix"], title: "Fix" },
-  FEAT: { key: "feat", terms: ["feat", "feature"], title: "Feature" },
-  BUILD: { key: "build", terms: ["build"], title: "Build" },
-  CHORE: { key: "chore", terms: ["chore"], title: "Chore" },
-  CI: { key: "ci", terms: ["ci"], title: "Continous Integration" },
-  DOCS: { key: "docs", terms: ["docs"], title: "Documentation" },
-  STYLE: { key: "style", terms: ["style"], title: "Style" },
-  REFACTOR: { key: "refactor", terms: ["refactor"], title: "Refactor" },
-  PERF: { key: "perf", terms: ["perf"], title: "Performance" },
-  TEST: { key: "test", terms: ["test"], title: "Test" },
+  "none": { key: "none", terms: [], title: "Others" },
+  "fix": { key: "fix", terms: ["fix", "bug", "hotfix"], title: "Fix" },
+  "feat": { key: "feat", terms: ["feat", "feature"], title: "Feature" },
+  "build": { key: "build", terms: ["build"], title: "Build" },
+  "chore": { key: "chore", terms: ["chore"], title: "Chore" },
+  "ci": { key: "ci", terms: ["ci"], title: "Continous Integration" },
+  "docs": { key: "docs", terms: ["docs"], title: "Documentation" },
+  "style": { key: "style", terms: ["style"], title: "Style" },
+  "refactor": { key: "refactor", terms: ["refactor"], title: "Refactor" },
+  "perf": { key: "perf", terms: ["perf"], title: "Performance" },
+  "test": { key: "test", terms: ["test"], title: "Test" },
 };
 
 function execCommand(command) {
