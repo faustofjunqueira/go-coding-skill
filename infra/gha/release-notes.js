@@ -34,7 +34,7 @@ function parseRefName(refName) {
 
 function checkIfTagIsSemver(refName) {
   const semverRegex = /^([a-zA-Z0-9-_]+)\/v(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?$/;
-  return semverRegex.test(tag);
+  return semverRegex.test(refName);
 }
 
 function createsReleaseNotes({ github, context, core, glob }) {
@@ -69,6 +69,8 @@ function createsReleaseNotes({ github, context, core, glob }) {
     // se patch: a tag X.X.X se termina com numero é patch
     // se major: a tag X.0.0 se termina com zero é major
     // se pre-release: a tag X.X.X-<pre-release> se termina com pre-release é pre-release
+
+    // Primeira tag, não tem Previous tag, entao como fica?
 
     // se for pre-release, não cria changelog
     // deve buscar TODOS os commits do mesmo scope
