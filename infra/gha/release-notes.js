@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-Previous versions: [$$PREVIOUS_VERSIONS$$](github.com/$$REPO_NAME$$/compare/$$PREVIOUS_SHA$$..$$TAG_SHA$$)
+Previous versions: [$$PREVIOUS_VERSIONS$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_SHA$$..$$TAG_SHA$$)
 `;
 
 const categoryTemplate = `
@@ -14,8 +14,6 @@ const categoryTemplate = `
 
 $$LOGS$$
 `;
-
-const logTemplate = `- [$$HASH$$] $$MESSAGE$$ - $$AUTHOR$$`;
 
 const GLOBAL_SCOPE = "stncard-go";
 const SHA_SIZE = 7;
@@ -154,8 +152,10 @@ function findPreviousTag(listTags, tag) {
   }
 }
 
-function loadCommitLogs(previousTag, tag) {
+function loadCommitLogs(repoName, previousTag, tag) {
   try {
+    const prCommitRegex = /^([a-zA-Z]+)(\([a-zA-Z-]+\)): (.+)\(#([0-9]+)\)$/;
+
     const commitLogs = execCommand(
       `git log ${completeTagName(previousTag)}..${completeTagName(
         tag
@@ -165,15 +165,47 @@ function loadCommitLogs(previousTag, tag) {
     ).split("\n");
 
     const logs = commitLogs.map((l) => {
-      const [message, hash, author] = l.split(";");
+      const [fullMessage, sha, author] = l.split(";");
 
-      for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
-        if (cat.terms.some((term) => message.toLowerCase().startsWith(term))) {
-          return { message, hash, author, category: cat };
+      let prNumber = 0;
+      let convercionalTag = "";
+      let message = fullMessage;
+      let pr = null
+
+      if (prCommitRegex.test(message)) {
+        messageParsed = prCommitRegex.exec(message);
+        convercionalTag = messageParsed[1];
+        message = message[3];
+        pr = {
+          number: messageParsed[4],
+          link: `https://github.com/${repoName}/pull/${messageParsed[4]}`
         }
       }
 
-      return { message, hash, author, category: LOG_CATEGORY.NONE };
+      let category = LOG_CATEGORY.NONE;
+
+      for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
+        if (cat.terms.some((term) => message.toLowerCase().startsWith(term))) {
+          category = cat;
+          continue;
+        }
+      }
+
+      return {
+        message: {
+          raw: fullMessage,
+          text: message,
+          tag: convercionalTag,
+          prNumber: prNumber,
+        },
+        pr: pr,
+        sha: sha,
+        author: {
+          author,
+          link: "@"+author
+        },
+        category: category,
+      };
     });
 
     return logs;
@@ -205,13 +237,8 @@ function categorizeLogs(logs) {
 
 function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   try {
-    // Object.entries(categorizeLogs).forEach(([category, logs]) => {
-    //   console.log(category, logs);
-    // });
-
     const categories = Object.entries(categorizeLogs)
       .map(([categoryKey, logs]) => {
-        // console.log(categoryKey, LOG_CATEGORY[categoryKey]);
         if (logs.length === 0) {
           return "";
         }
@@ -220,10 +247,11 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
 
         const logsTemplate = logs
           .map((log) => {
-            return logTemplate
-              .replace("$$HASH$$", log.hash)
-              .replace("$$MESSAGE$$", log.message)
-              .replace("$$AUTHOR$$", `@${log.author}`);
+            if (log.pr) {
+              return `- ``${log.message.tag}`` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
+            }
+            
+            return `- ``${log.message.tag}`` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
           })
           .join("\n");
 
@@ -266,7 +294,7 @@ async function createsReleaseNotes({ github, context, core, glob }) {
     const previousTag = findPreviousTag(listTags, tag);
     const logs = categorizeLogs(loadCommitLogs(previousTag, tag));
 
-    console.log(github.repos, github.repo)
+    console.log(github.repos, github.repo);
 
     // const { data: compare } = await github.repos.compareCommits({
     //   owner: context.repo.owner,
