@@ -151,9 +151,14 @@ async function generateTag(
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
     }
 
+    console.log("type", typeTag)
+
     const listtag = loadTagLists(namespace);
+    console.log("listtag", listtag.map((t) => t.version()))
     const previousTag = findPreviousTag(namespace, listtag, filterTagBy);
+    console.log("previousTag", previousTag.version())
     const newTag = incrementsTag(previousTag, typeTag);
+    console.log("newTag", newTag.version())
     return newTag.version();
   } catch (error) {
     core.setFailed(error.message);
