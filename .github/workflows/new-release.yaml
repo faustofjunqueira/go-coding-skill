@@ -1,0 +1,62 @@
+name: Release / New
+run-name: ${{ github.event_name }} by @${{ github.actor }}
+
+on:
+    workflow_dispatch:
+        inputs:
+            namespace:
+                description: 'Namespace'
+                required: true
+                default: ''
+            minor:
+                description: 'Minor'
+                required: false
+                default: false
+                type: boolean
+            hotfix:
+                description: 'Hotfix'
+                required: false
+                default: false
+                type: boolean
+            rc:
+                description: 'Release Candidate'
+                required: false
+                default: false
+                type: boolean
+            tag:
+                description: 'Tag'
+                required: false
+                default: ''
+                type: string
+
+jobs:
+    generate-tags:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: validate inputs
+              run: |
+                    if [ -z "${{ github.event.inputs.namespace }}" ]; then
+                        echo "namespace is required"
+                        exit 1
+                    fi
+
+                    count=0
+
+                    if [ "${{ github.event.inputs.minor }}" = "true" ]; then count=$((count + 1)); fi
+                    if [ "${{ github.event.inputs.hotfix }}" = "true" ]; then count=$((count + 1)); fi
+                    if [ "${{ github.event.inputs.rc }}" = "true" ]; then count=$((count + 1)); fi
+                    if [ -n "${{ github.event.inputs.tag }}" ]; then count=$((count + 1)); fi
+
+                    if [ $count -ne 1 ]; then
+                        echo "Only one of minor, hotfix, rc, or tag must be specified"
+                        exit 1
+                    fi
+
+                    if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
+                        echo "Invalid namespace: ./internal/${{ github.event.inputs.namespace }} does not exist"
+                        exit 1
+                    fi
+            
+
