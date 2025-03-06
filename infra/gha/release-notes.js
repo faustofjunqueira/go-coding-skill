@@ -54,37 +54,52 @@ function completeTagName(tag) {
 }
 
 function parseRefName(refName) {
-  const [namespace, version] = refName.split("/");
-  const [_, semver] = version.split("v");
-  const [major, minor, patchWithPreRelease] = semver.split(".");
-  const [patch, preRelease] = patchWithPreRelease.split("-");
+  try {
+    const [namespace, version] = refName.split("/");
+    const [_, semver] = version.split("v");
+    const [major, minor, patchWithPreRelease] = semver.split(".");
+    const [patch, preRelease] = patchWithPreRelease.split("-");
 
-  let type;
-  if (preRelease) {
-    type = TAG_TYPE.PRE_RELEASE;
-  } else if (minor === "0" && patch === "0") {
-    type = TAG_TYPE.MAJOR;
-  } else if (patch === "0") {
-    type = TAG_TYPE.MINOR;
-  } else {
-    type = TAG_TYPE.PATCH;
+    let type;
+    if (preRelease) {
+      type = TAG_TYPE.PRE_RELEASE;
+    } else if (minor === "0" && patch === "0") {
+      type = TAG_TYPE.MAJOR;
+    } else if (patch === "0") {
+      type = TAG_TYPE.MINOR;
+    } else {
+      type = TAG_TYPE.PATCH;
+    }
+
+    return {
+      namespace,
+      version,
+      SHA: getSHA(refName),
+      semver: { semver, type, major, minor, patch, preRelease },
+    };
+  } catch (error) {
+    throw new Error(`Failed to parse refName: ${error.message}`);
   }
-
-  return {
-    namespace,
-    version,
-    SHA: getSHA(refName),
-    semver: { semver, type, major, minor, patch, preRelease },
-  };
 }
 
 function checkIfTagIsSemver(refName) {
-  const semverRegex = /^([a-zA-Z0-9-_]+)\/v(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?$/;
-  return semverRegex.test(refName);
+  try {
+    const semverRegex =
+      /^([a-zA-Z0-9-_]+)\/v(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?$/;
+    return semverRegex.test(refName);
+  } catch (error) {
+    throw new Error(`Failed to check if tag is semver: ${error.message}`);
+  }
 }
 
 function getSHA(tag) {
-  return execCommand(`git rev-parse --short=${SHA_SIZE} ${completeTagName(tag)}`);
+  try {
+    return execCommand(
+      `git rev-parse --short=${SHA_SIZE} ${completeTagName(tag)}`
+    );
+  } catch (error) {
+    throw new Error(`Failed to fetch SHA: ${error.message}`);
+  }
 }
 
 function loadTagLists(tag) {
@@ -125,16 +140,20 @@ function filterTagByType(typeCompator) {
 }
 
 function findPreviousTag(listTags, tag) {
-  let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
-  if (tag.semver.type === TAG_TYPE.PATCH) {
-    filterBy = TAG_TYPE.PATCH;
+  try {
+    let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
+    if (tag.semver.type === TAG_TYPE.PATCH) {
+      filterBy = TAG_TYPE.PATCH;
+    }
+
+    const semverTags = listTags
+      .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
+      .sort(compareTags); // ordena pela versao mais recente
+
+    return semverTags.length > 0 ? semverTags[0] : null;
+  } catch (error) {
+    throw new Error(`Failed to find previous tag: ${error.message}`);
   }
-
-  const semverTags = listTags
-    .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
-    .sort(compareTags); // ordena pela versao mais recente
-
-  return semverTags.length > 0 ? semverTags[0] : null;
 }
 
 function loadCommitLogs(previousTag, tag) {
@@ -159,52 +178,62 @@ function loadCommitLogs(previousTag, tag) {
       return { message, hash, author };
     });
   } catch (error) {
+    console.error(`Failed to fetch commit logs: ${error.message}`);
     return [];
   }
 }
 
 function categorizeLogs(logs) {
-  const logsCategorized = {
-    [LOG_CATEGORY.NONE]: [],
-    [LOG_CATEGORY.FIX]: [],
-    [LOG_CATEGORY.FEAT]: [],
-    [LOG_CATEGORY.BUILD]: [],
-    [LOG_CATEGORY.CHORE]: [],
-    [LOG_CATEGORY.CI]: [],
-    [LOG_CATEGORY.DOCS]: [],
-    [LOG_CATEGORY.STYLE]: [],
-    [LOG_CATEGORY.REFACTOR]: [],
-    [LOG_CATEGORY.PERF]: [],
-    [LOG_CATEGORY.TEST]: [],
-  };
+  try {
+    const logsCategorized = {
+      [LOG_CATEGORY.NONE]: [],
+      [LOG_CATEGORY.FIX]: [],
+      [LOG_CATEGORY.FEAT]: [],
+      [LOG_CATEGORY.BUILD]: [],
+      [LOG_CATEGORY.CHORE]: [],
+      [LOG_CATEGORY.CI]: [],
+      [LOG_CATEGORY.DOCS]: [],
+      [LOG_CATEGORY.STYLE]: [],
+      [LOG_CATEGORY.REFACTOR]: [],
+      [LOG_CATEGORY.PERF]: [],
+      [LOG_CATEGORY.TEST]: [],
+    };
 
-  return logs
-    .sort((a, b) => a.hash.localeCompare(b.hash))
-    .forEach((log) => {
-      if (log.category) {
-        logsCategorized[log.category].push(log);
-      }
-    });
+    return logs
+      .sort((a, b) => a.hash.localeCompare(b.hash))
+      .forEach((log) => {
+        if (log.category) {
+          logsCategorized[log.category].push(log);
+        }
+      });
+  } catch (error) {
+    throw new Error(`Failed to categorize logs: ${error.message}`);
+  }
 }
 
 function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
-  const categories = Object.entries(categorizeLogs).map(([category, logs]) => {
-    if (logs.length === 0) {
-      return "";
-    }
-    const logsTemplate = logs
-      .map((log) => {
-        return logTemplate
-          .replace("$$HASH$$", log.hash)
-          .replace("$$MESSAGE$$", log.message)
-          .replace("$$AUTHOR$$", log.author);
-      })
-      .join("\n");
+  try {
 
-    return categoryTemplate
-      .replace("$$CATEGORY_TITLE$$", category.title)
-      .replace("$$LOGS$$", logsTemplate);
-  }).filter(f => f !== "");
+  
+  const categories = Object.entries(categorizeLogs)
+    .map(([category, logs]) => {
+      if (logs.length === 0) {
+        return "";
+      }
+      const logsTemplate = logs
+        .map((log) => {
+          return logTemplate
+            .replace("$$HASH$$", log.hash)
+            .replace("$$MESSAGE$$", log.message)
+            .replace("$$AUTHOR$$", log.author);
+        })
+        .join("\n");
+
+      return categoryTemplate
+        .replace("$$CATEGORY_TITLE$$", category.title)
+        .replace("$$LOGS$$", logsTemplate);
+    })
+    .filter((f) => f !== "");
 
   return templateMD
     .replace("$$VERSION$$", completeTagName(tag))
@@ -213,6 +242,9 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
     .replace("$$REPO_NAME$$", repoName.split("/")[0])
     .replace("$$PREVIOUS_SHA$$", previousTag.SHA)
     .replace("$$TAG_SHA$$", tag.SHA);
+  }catch(error) {
+    throw new Error(`Failed to write template: ${error.message}`);
+  }
 }
 
 function createsReleaseNotes({ github, context, core, glob }) {
@@ -240,7 +272,6 @@ function createsReleaseNotes({ github, context, core, glob }) {
 
     const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
     core.summary.addRaw(releaseNotes).write();
-
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
