@@ -1,5 +1,4 @@
-// inputs
-// - tag criada <namespace>/v<semver>
+const { execSync } = require("child_process");
 
 const TAG_TYPE = {
   MAJOR: "major",
@@ -37,6 +36,35 @@ function checkIfTagIsSemver(refName) {
   return semverRegex.test(refName);
 }
 
+function loadTagLists(tag) {
+  try {
+    const tagPrefix = tag.namespace + "/v*";
+    const tags = execSync(`git tag -l "${tagPrefix}"`, { encoding: "utf-8" })
+      .trim()
+      .split("\n");
+
+    if (tags.length === 0 || tags[0] === "") {
+      return [];
+    }
+    
+    return tags;
+  } catch (error) {
+    throw new Error(`Failed to fetch tags: ${error.message}`);
+  }
+}
+
+function findPreviousTag(tag) {
+  const listTags = loadTagLists(core, tag);
+
+  if (preRelease) {
+    // É a ultima hotfix ou minor gerada!
+  } else if (patch === "0") {
+    // Ultimo Minor gerado
+  } else {
+    // Ultimo hotfix desse minor em questão
+  }
+}
+
 function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
@@ -56,23 +84,10 @@ function createsReleaseNotes({ github, context, core, glob }) {
 
     const tag = parseRefName(refName);
 
-    console.log(parseRefName("namespace/v1.2.3"));
-    console.log(parseRefName("namespace/v1.2.0"));
-    console.log(parseRefName("namespace/v1.0.0"));
-    console.log(parseRefName("namespace/v1.0.0-1"));
-    console.log(parseRefName("namespace/v1.0.21-112"));
-    console.log(parseRefName("namespace/v1.1.21-1"));
-
-    // Verifica a tag
-    // Verifica se major, minor, patch ou pre-release
-    // se minor: a tag X.X.0 se termina com zero é minor
-    // se patch: a tag X.X.X se termina com numero é patch
-    // se major: a tag X.0.0 se termina com zero é major
-    // se pre-release: a tag X.X.X-<pre-release> se termina com pre-release é pre-release
-
     // Primeira tag, não tem Previous tag, entao como fica?
+    // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
+    //
 
-    // se for pre-release, não cria changelog
     // deve buscar TODOS os commits do mesmo scope
     // Se patch o PREVIOUS_TAG => Ultimo hotfix desse minor em questão
     // Se minor | major o PREVIOUS_TAG => Ultimo Minor gerado
