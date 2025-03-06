@@ -157,11 +157,7 @@ function loadCommitLogs(repoName, previousTag, tag) {
     const prCommitRegex = /^([a-zA-Z]+)(\([a-zA-Z-]+\)): (.+)\(#([0-9]+)\)$/;
 
     const commitLogs = execCommand(
-      `git log ${completeTagName(previousTag)}..${completeTagName(
-        tag
-      )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${
-        tag.namespace
-      })\)" -i`
+      `git log ${completeTagName(previousTag)}..${completeTagName( tag )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${ tag.namespace })\)" -i`
     ).split("\n");
 
     const logs = commitLogs.map((l) => {
@@ -247,11 +243,12 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
 
         const logsTemplate = logs
           .map((log) => {
+
             if (log.pr) {
               return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
             }
             
-            return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} in [#${log.pr.number}](${log.pr.link})`
+            return `- \`${log.message.tag}\` ${log.message.text} by ${log.author.link} \`<no-pull-request>\``
           })
           .join("\n");
 
