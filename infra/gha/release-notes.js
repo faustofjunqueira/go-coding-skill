@@ -266,7 +266,7 @@ async function createsReleaseNotes({ github, context, core, glob }) {
     const previousTag = findPreviousTag(listTags, tag);
     const logs = categorizeLogs(loadCommitLogs(previousTag, tag));
 
-    const { data: compare } = await github.repos.compareCommits({
+    const { data: compare } = await github.repo.compareCommits({
       owner: context.repo.owner,
       repo: context.repo.repo,
       base: previousTag,
