@@ -43,14 +43,30 @@ function parseRefName(refName) {
     throw new Error(`Failed to parse refName: ${error.message}`);
   }
 }
+
+function compareTags(tagX, tagY) {
+  if (tagX.semver.major !== tagY.semver.major) {
+    return tagY.semver.major - tagX.semver.major;
+  }
+  if (tagX.semver.minor !== tagY.semver.minor) {
+    return tagY.semver.minor - tagX.semver.minor;
+  }
+  if (tagY.semver.patch !== tagX.semver.patch) {
+    return tagY.semver.patch - tagX.semver.patch;
+  }
+  return tagY.semver.preRelease - tagX.semver.preRelease;
+}
+
+function filterTagByType(typeCompator) {
+  return (tag) => !!(tag.semver.type & typeCompator);
+}
+
 function loadTagLists(namespace) {
   try {
     const tagPrefix = namespace + "/v*";
     const tags = execCommand(`git tag -l "${tagPrefix}"`, {
       encoding: "utf-8",
     }).split("\n");
-
-    console.log("output", tags)
 
     if (tags.length === 0 || tags[0] === "") {
       return [];
@@ -64,13 +80,12 @@ function loadTagLists(namespace) {
 
 function findPreviousTag(listTags, typeTag) {
   try {
-    let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
-    if (tag.semver.type === TAG_TYPE.PATCH) {
-      filterBy = TAG_TYPE.PATCH;
+    if (listTags.length === 0) {
+      return "v0.0.0";
     }
-
+    
     const semverTags = listTags
-      .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
+      .filter(filterTagByType(typeTag)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
       .sort(compareTags); // ordena pela versao mais recente
 
     return semverTags.length > 0 ? semverTags[0] : null;
@@ -89,8 +104,19 @@ async function generateTag(
   tag
 ) {
   try {
+    let typeTag = TAG_TYPE.MAJOR;
+    if (preRelease) {
+      typeTag = TAG_TYPE.preRelease;
+    } else if (minor) {
+        typeTag = TAG_TYPE.MINOR;
+    } else if (patch) {
+        typeTag = TAG_TYPE.PATCH;
+    }
+
+
     const listtag = loadTagLists(namespace);
-    console.log(listtag);
+    const previousTag = findPreviousTag(listtag, typeTag);
+    console.log("previousTag", previousTag);
   } catch (error) {
     core.setFailed(error.message);
   }
