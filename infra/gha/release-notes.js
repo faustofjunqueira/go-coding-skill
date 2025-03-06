@@ -39,12 +39,9 @@ function checkIfTagIsSemver(refName) {
 function loadTagLists(tag) {
   try {
     const tagPrefix = tag.namespace + "/v*";
-    console.log(`git tag -l "${tagPrefix}"`)
     const tags = execSync(`git tag -l "${tagPrefix}"`, { encoding: "utf-8" })
       .trim()
       .split("\n");
-
-    console.log("output", tags);
 
     if (tags.length === 0 || tags[0] === "") {
       return [];
@@ -86,8 +83,6 @@ function findPreviousTag(listTags, tag) {
   const semverTags = listTags
     .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
     .sort(compareTags); // ordena pela versao mais recente
-
-  console.log("semverTags", semverTags);
 
   return semverTags.length > 0 ? semverTags[0] : null;
 }
