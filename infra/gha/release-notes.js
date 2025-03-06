@@ -220,7 +220,7 @@ function categorizeLogs(logs) {
     const logsCategorized = {};
 
     logs
-      .sort((a, b) => a.hash.localeCompare(b.hash))
+      .sort((a, b) => a.sha.localeCompare(b.sha))
       .forEach((log) => {
         if (!logsCategorized[log.category.key]) {
           logsCategorized[log.category.key] = [];
@@ -293,17 +293,6 @@ async function createsReleaseNotes({ github, context, core, glob }) {
     const listTags = loadTagLists(tag);
     const previousTag = findPreviousTag(listTags, tag);
     const logs = categorizeLogs(loadCommitLogs(repoName, previousTag, tag));
-
-    console.log(github.repos, github.repo);
-
-    // const { data: compare } = await github.repos.compareCommits({
-    //   owner: context.repo.owner,
-    //   repo: context.repo.repo,
-    //   base: previousTag,
-    //   head: latestTag
-    // });
-
-    // console.log("=> ", compare);
 
     const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
     core.summary.addRaw(releaseNotes).write();
