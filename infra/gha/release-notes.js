@@ -28,17 +28,17 @@ const TAG_TYPE = {
 };
 
 const LOG_CATEGORY = {
-  "none": { key: "none", terms: [], title: "Others" },
-  "fix": { key: "fix", terms: ["fix", "bug", "hotfix"], title: "Fix" },
-  "feat": { key: "feat", terms: ["feat", "feature"], title: "Feature" },
-  "build": { key: "build", terms: ["build"], title: "Build" },
-  "chore": { key: "chore", terms: ["chore"], title: "Chore" },
-  "ci": { key: "ci", terms: ["ci"], title: "Continous Integration" },
-  "docs": { key: "docs", terms: ["docs"], title: "Documentation" },
-  "style": { key: "style", terms: ["style"], title: "Style" },
-  "refactor": { key: "refactor", terms: ["refactor"], title: "Refactor" },
-  "perf": { key: "perf", terms: ["perf"], title: "Performance" },
-  "test": { key: "test", terms: ["test"], title: "Test" },
+  NONE: { key: "NONE", terms: [], title: "Others" },
+  FIX: { key: "FIX", terms: ["fix", "bug", "hotfix"], title: "Fix" },
+  FEAT: { key: "FEAT", terms: ["feat", "feature"], title: "Feature" },
+  BUILD: { key: "BUILD", terms: ["build"], title: "Build" },
+  CHORE: { key: "CHORE", terms: ["chore"], title: "Chore" },
+  CI: { key: "CI", terms: ["ci"], title: "Continous Integration" },
+  DOCS: { key: "DOCS", terms: ["docs"], title: "Documentation" },
+  STYLE: { key: "STYLE", terms: ["style"], title: "Style" },
+  REFACTOR: { key: "REFACTOR", terms: ["refactor"], title: "Refactor" },
+  PERF: { key: "PERF", terms: ["perf"], title: "Performance" },
+  TEST: { key: "TEST", terms: ["test"], title: "Test" },
 };
 
 function execCommand(command) {
@@ -94,9 +94,7 @@ function checkIfTagIsSemver(refName) {
 
 function getSHA(refName) {
   try {
-    return execCommand(
-      `git rev-parse --short=${SHA_SIZE} ${refName}`
-    );
+    return execCommand(`git rev-parse --short=${SHA_SIZE} ${refName}`);
   } catch (error) {
     throw new Error(`Failed to fetch SHA: ${error.message}`);
   }
@@ -168,7 +166,7 @@ function loadCommitLogs(previousTag, tag) {
 
     const logs = commitLogs.map((l) => {
       const [message, hash, author] = l.split(";");
-      
+
       for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
         if (cat.terms.some((term) => message.toLowerCase().startsWith(term))) {
           return { message, hash, author, category: cat };
@@ -187,23 +185,15 @@ function loadCommitLogs(previousTag, tag) {
 
 function categorizeLogs(logs) {
   try {
-    const logsCategorized = {
-      [LOG_CATEGORY.NONE.key]: [],
-      [LOG_CATEGORY.FIX.key]: [],
-      [LOG_CATEGORY.FEAT.key]: [],
-      [LOG_CATEGORY.BUILD.key]: [],
-      [LOG_CATEGORY.CHORE.key]: [],
-      [LOG_CATEGORY.CI.key]: [],
-      [LOG_CATEGORY.DOCS.key]: [],
-      [LOG_CATEGORY.STYLE.key]: [],
-      [LOG_CATEGORY.REFACTOR.key]: [],
-      [LOG_CATEGORY.PERF.key]: [],
-      [LOG_CATEGORY.TEST.key]: [],
-    };
+    const logsCategorized = {};
 
     logs
       .sort((a, b) => a.hash.localeCompare(b.hash))
       .forEach((log) => {
+        if (!logsCategorized[log.category.key]) {
+          logsCategorized[log.category.key] = [];
+        }
+
         logsCategorized[log.category.key].push(log);
       });
 
@@ -215,15 +205,17 @@ function categorizeLogs(logs) {
 
 function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   try {
-    
-    Object.entries(categorizeLogs).forEach(([category, logs]) => {console.log(category, logs)});
+    // Object.entries(categorizeLogs).forEach(([category, logs]) => {
+    //   console.log(category, logs);
+    // });
+
     const categories = Object.entries(categorizeLogs)
       .map(([categoryKey, logs]) => {
-        console.log(categoryKey, LOG_CATEGORY[categoryKey])
+        // console.log(categoryKey, LOG_CATEGORY[categoryKey]);
         if (logs.length === 0) {
           return "";
         }
-        
+
         const category = LOG_CATEGORY[categoryKey];
 
         const logsTemplate = logs
