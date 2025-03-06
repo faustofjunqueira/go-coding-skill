@@ -154,7 +154,7 @@ function findPreviousTag(listTags, tag) {
 
 function loadCommitLogs(repoName, previousTag, tag) {
   try {
-    const prCommitRegex = /^([a-zA-Z]+)(\([a-zA-Z-]+\)): (.+)\(#([0-9]+)\)$/;
+    const prCommitRegex = /^([a-zA-Z]+)\(([a-zA-Z-]+)\): (.+)\(#([0-9]+)\)$/;
 
     const commitLogs = execCommand(
       `git log ${completeTagName(previousTag)}..${completeTagName( tag )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${ tag.namespace })\)" -i`
