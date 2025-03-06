@@ -219,6 +219,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
     Object.entries(categorizeLogs).forEach(([category, logs]) => {console.log(category, logs)});
     const categories = Object.entries(categorizeLogs)
       .map(([categoryKey, logs]) => {
+        console.log(categoryKey, LOG_CATEGORY[categoryKey])
         if (logs.length === 0) {
           return "";
         }
