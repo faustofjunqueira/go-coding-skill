@@ -101,7 +101,7 @@ function loadCommitLogs(previousTag, tag) {
 function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
-    const ref = "refs/tags/namespace/v1.3.0";
+    const ref = "refs/tags/namespace/v1.4.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
 
