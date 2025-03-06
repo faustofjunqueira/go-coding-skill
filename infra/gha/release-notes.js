@@ -1,6 +1,24 @@
 const { execSync } = require("child_process");
 
+const templateMD = `
+## Changelog for $$VERSION$$
+
+$$CATEGORIES$$
+
+---
+Previous versions: [$$PREVIOUS_VERSIONS$$](github.com/$$REPO_NAME$$/compare/namespace/$$PREVIOUS_SHA$$..$$TAG_SHA$$)
+`;
+
+const categoryTemplate = `
+### $$CATEGORY_TITLE$$
+
+$$LOGS$$
+`;
+
+const logTemplate = `- [$$HASH$$] $$MESSAGE$$ - $$AUTHOR$$`;
+
 const GLOBAL_SCOPE = "stncard-go";
+const SHA_SIZE = 7;
 
 const TAG_TYPE = {
   MAJOR: 0b1000,
@@ -10,16 +28,17 @@ const TAG_TYPE = {
 };
 
 const LOG_CATEGORY = {
-  FIX: { key: "fix", terms: ["fix", "bug", "hotfix"], title: "Fix"},
-  FEAT: { key: "feat", terms: ["feat", "feature"], title: "Feature"},
-  BUILD: { key: "build", terms: ["build", ], title: "Build"},
-  CHORE: { key: "chore", terms: ["chore", ], title: "Chore"},
-  CI: { key: "ci", terms: ["ci", ], title: "Continous Integration"},
-  DOCS: { key: "docs", terms: ["docs", ], title: "Documentation"},
-  STYLE: { key: "style", terms: ["style", ], title: "Style"},
-  REFACTOR: { key: "refactor", terms: ["refactor", ], title: "Refactor"},
-  PERF: { key: "perf", terms: ["perf", ], title: "Performance"},
-  TEST: { key: "test", terms: ["test", ], title: "Test"},
+  NONE: { key: "none", terms: [], title: "Others" },
+  FIX: { key: "fix", terms: ["fix", "bug", "hotfix"], title: "Fix" },
+  FEAT: { key: "feat", terms: ["feat", "feature"], title: "Feature" },
+  BUILD: { key: "build", terms: ["build"], title: "Build" },
+  CHORE: { key: "chore", terms: ["chore"], title: "Chore" },
+  CI: { key: "ci", terms: ["ci"], title: "Continous Integration" },
+  DOCS: { key: "docs", terms: ["docs"], title: "Documentation" },
+  STYLE: { key: "style", terms: ["style"], title: "Style" },
+  REFACTOR: { key: "refactor", terms: ["refactor"], title: "Refactor" },
+  PERF: { key: "perf", terms: ["perf"], title: "Performance" },
+  TEST: { key: "test", terms: ["test"], title: "Test" },
 };
 
 function execCommand(command) {
@@ -33,6 +52,7 @@ function execCommand(command) {
 function completeTagName(tag) {
   return `${tag.namespace}/${tag.version}`;
 }
+
 function parseRefName(refName) {
   const [namespace, version] = refName.split("/");
   const [_, semver] = version.split("v");
@@ -53,6 +73,7 @@ function parseRefName(refName) {
   return {
     namespace,
     version,
+    SHA: getSHA(refName),
     semver: { semver, type, major, minor, patch, preRelease },
   };
 }
@@ -60,6 +81,10 @@ function parseRefName(refName) {
 function checkIfTagIsSemver(refName) {
   const semverRegex = /^([a-zA-Z0-9-_]+)\/v(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?$/;
   return semverRegex.test(refName);
+}
+
+function getSHA(tag) {
+  return execCommand(`git rev-parse --short=${SHA_SIZE} ${completeTagName(tag)}`);
 }
 
 function loadTagLists(tag) {
@@ -131,7 +156,7 @@ function loadCommitLogs(previousTag, tag) {
         }
       }
 
-      return {message, hash, author };
+      return { message, hash, author };
     });
   } catch (error) {
     return [];
@@ -139,31 +164,61 @@ function loadCommitLogs(previousTag, tag) {
 }
 
 function categorizeLogs(logs) {
-  const sections = {
-    hotfixes: [],
-    features: [],
-    breakingChanges: [],
-    others: [],
+  const logsCategorized = {
+    [LOG_CATEGORY.NONE]: [],
+    [LOG_CATEGORY.FIX]: [],
+    [LOG_CATEGORY.FEAT]: [],
+    [LOG_CATEGORY.BUILD]: [],
+    [LOG_CATEGORY.CHORE]: [],
+    [LOG_CATEGORY.CI]: [],
+    [LOG_CATEGORY.DOCS]: [],
+    [LOG_CATEGORY.STYLE]: [],
+    [LOG_CATEGORY.REFACTOR]: [],
+    [LOG_CATEGORY.PERF]: [],
+    [LOG_CATEGORY.TEST]: [],
   };
 
-  logs.forEach((log) => {
-    if (log.message.startsWith("(hotfix)")) {
-      sections.hotfixes.push(log);
-    } else if (log.message.startsWith("(feature)")) {
-      sections.features.push(log);
-    } else if (log.message.startsWith("(breaking change)")) {
-      sections.breakingChanges.push(log);
-    } else {
-      sections.others.push(log);
-    }
-  });
+  return logs
+    .sort((a, b) => a.hash.localeCompare(b.hash))
+    .forEach((log) => {
+      if (log.category) {
+        logsCategorized[log.category].push(log);
+      }
+    });
+}
 
-  return sections;
+function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
+  const categories = Object.entries(categorizeLogs).map(([category, logs]) => {
+    if (logs.length === 0) {
+      return "";
+    }
+    const logsTemplate = logs
+      .map((log) => {
+        return logTemplate
+          .replace("$$HASH$$", log.hash)
+          .replace("$$MESSAGE$$", log.message)
+          .replace("$$AUTHOR$$", log.author);
+      })
+      .join("\n");
+
+    return categoryTemplate
+      .replace("$$CATEGORY_TITLE$$", category.title)
+      .replace("$$LOGS$$", logsTemplate);
+  }).filter(f => f !== "");
+
+  return templateMD
+    .replace("$$VERSION$$", completeTagName(tag))
+    .replace("$$CATEGORIES$$", categories.join("\n"))
+    .replace("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
+    .replace("$$REPO_NAME$$", repoName.split("/")[0])
+    .replace("$$PREVIOUS_SHA$$", previousTag.SHA)
+    .replace("$$TAG_SHA$$", tag.SHA);
 }
 
 function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
+    const repoName = [context.repo.owner, context.repo.repo].join("/");
     const ref = "refs/tags/namespace/v1.5.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
@@ -181,22 +236,14 @@ function createsReleaseNotes({ github, context, core, glob }) {
     const tag = parseRefName(refName);
     const listTags = loadTagLists(tag);
     const previousTag = findPreviousTag(listTags, tag);
-    const logs = loadCommitLogs(previousTag, tag);
+    const logs = categorizeLogs(loadCommitLogs(previousTag, tag));
 
-    console.log("tag", tag.version);
-    console.log("previousTag", previousTag.version);
-    console.log("logs", logs);
+    const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
+    core.summary.addRaw(releaseNotes).write();
+
 
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
-    //
-
-    // deve buscar TODOS os commits do mesmo scope
-    // Se patch o PREVIOUS_TAG => Ultimo hotfix desse minor em questão
-    // Se minor | major o PREVIOUS_TAG => Ultimo Minor gerado
-    // Se prerelease o PREVIOUS_TAG => É a ultima hotfix ou minor gerada!
-    // Criar uma sessão para Hotfixes, no caso de minor e major. Esses são todos os hotfixes gerados para minor anterior
-    // Separa os logs por seção!
   } catch (error) {
     core.setFailed(error.message);
   }
