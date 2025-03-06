@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-Comparing: [$$PREVIOUS_VERSIONS$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_TAG$$..$$TAG$$)
+:monocle_face: Comparing: [$$PREVIOUS_VERSIONS$$ :repeat: $$VERSION$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_VERSIONS$$..$$VERSION$$)
 `;
 
 const categoryTemplate = `
@@ -253,18 +253,16 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
           .join("\n");
 
         return categoryTemplate
-          .replace("$$CATEGORY_TITLE$$", category.title)
-          .replace("$$LOGS$$", logsTemplate);
+          .replaceAll("$$CATEGORY_TITLE$$", `${category.icon} ${category.title}`)
+          .replaceAll("$$LOGS$$", logsTemplate);
       })
       .filter((f) => f !== "");
 
     return templateMD
-      .replace("$$VERSION$$", completeTagName(tag))
-      .replace("$$CATEGORIES$$", categories.join("\n"))
-      .replace("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
-      .replace("$$REPO_NAME$$", repoName)
-      .replace("$$PREVIOUS_TAG$$", completeTagName(previousTag))
-      .replace("$$TAG$$", completeTagName(tag));
+      .replaceAll("$$VERSION$$", completeTagName(tag))
+      .replaceAll("$$CATEGORIES$$", categories.join("\n"))
+      .replaceAll("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
+      .replaceAll("$$REPO_NAME$$", repoName);
   } catch (error) {
     throw new Error(`Failed to write template: ${error.message}`);
   }
