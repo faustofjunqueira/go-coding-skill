@@ -104,18 +104,18 @@ async function generateTag(
   tag
 ) {
   try {
-    let typeTag = TAG_TYPE.MAJOR;
+    let typeTag = 0;
     if (preRelease) {
-      typeTag = TAG_TYPE.preRelease;
-    } else if (minor) {
-        typeTag = TAG_TYPE.MINOR;
+      typeTag = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
+    } else if (minor || major) {
+        typeTag = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
     } else if (patch) {
-        typeTag = TAG_TYPE.PATCH;
+        typeTag = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
     }
-
 
     const listtag = loadTagLists(namespace);
     const previousTag = findPreviousTag(listtag, typeTag);
+
     console.log("previousTag", previousTag);
   } catch (error) {
     core.setFailed(error.message);
