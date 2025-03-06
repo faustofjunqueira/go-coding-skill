@@ -47,7 +47,11 @@ function loadTagLists(tag) {
       return [];
     }
 
-    return tags;
+    return tags
+      .map(parseRefName) 
+      .filter(t => t.namespace === tag.namespace) // tem que ser do mesmo namespace
+      .filter(t => t.version !== tag.version) // remove a propria tag em questao;
+
   } catch (error) {
     throw new Error(`Failed to fetch tags: ${error.message}`);
   }
@@ -70,18 +74,13 @@ function filterTagByType(typeCompator) {
   return (tag) => !!(tag.semver.type & typeCompator);
 }
 
-function findPreviousTag(tag) {
-  const listTags = loadTagLists(tag);
-
+function findPreviousTag(listTags, tag) {
   let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
   if (tag.semver.type === TAG_TYPE.PATCH) {
     filterBy = TAG_TYPE.PATCH;
   }
 
   const semverTags = listTags
-    .map(parseRefName) 
-    .filter(t => t.namespace === tag.namespace) // tem que ser do mesmo namespace
-    .filter(t => t.version !== tag.version) // remove a propria tag em questao
     .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
     .sort(compareTags); // ordena pela versao mais recente
 
@@ -106,7 +105,8 @@ function createsReleaseNotes({ github, context, core, glob }) {
     }
 
     const tag = parseRefName(refName);
-    const previousTag = findPreviousTag(tag);
+    const listTags = loadTagLists(tag);
+    const previousTag = findPreviousTag(listTags, tag);
 
     console.log("tag", tag);
     console.log("previousTag", previousTag);
