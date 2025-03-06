@@ -219,12 +219,12 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
     Object.entries(categorizeLogs).forEach(([category, logs]) => {console.log(category, logs)});
     const categories = Object.entries(categorizeLogs)
       .map(([categoryKey, logs]) => {
-        const category = LOG_CATEGORY[categoryKey];
-
         if (logs.length === 0) {
           return "";
         }
         
+        const category = LOG_CATEGORY[categoryKey];
+
         const logsTemplate = logs
           .map((log) => {
             return logTemplate
@@ -259,8 +259,6 @@ function createsReleaseNotes({ github, context, core, glob }) {
     const ref = "refs/tags/namespace/v1.5.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
-
-    console.log(refName);
 
     if (type == "heads") {
       throw new Error("This action only works with tags");
