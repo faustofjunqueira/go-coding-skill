@@ -11,7 +11,7 @@ on:
             minor:
                 description: 'Minor'
                 required: false
-                default: false
+                default: true
                 type: boolean
             hotfix:
                 description: 'Hotfix'
@@ -84,7 +84,15 @@ jobs:
                   github-token: ${{ secrets.TOKEN }}
                   script: |
                     const script = require('./infra/gha/generate-tag.js')
-                    console.log(await script({github, context, core}, ${{ github.event.inputs.major }}, ${{ github.event.inputs.minor }}, ${{ github.event.inputs.hotfix }},  ${{ github.event.inputs.rc }}, "${{ github.event.inputs.tag }}"))
+                    console.log(await script(
+                      {github, context, core}, 
+                      "${{ github.event.inputs.namespace }}", 
+                      ${{ github.event.inputs.major }}, 
+                      ${{ github.event.inputs.minor }}, 
+                      ${{ github.event.inputs.hotfix }},  
+                      ${{ github.event.inputs.rc }}, 
+                      "${{ github.event.inputs.tag }}"
+                    ))
           
 
                     
