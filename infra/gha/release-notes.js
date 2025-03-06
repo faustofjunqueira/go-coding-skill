@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-Previous versions: [$$PREVIOUS_VERSIONS$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_TAG$$..$$TAG$$)
+Comparing: [$$PREVIOUS_VERSIONS$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_TAG$$..$$TAG$$)
 `;
 
 const categoryTemplate = `
