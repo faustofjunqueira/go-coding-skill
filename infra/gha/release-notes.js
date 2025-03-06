@@ -73,16 +73,17 @@ function filterTagByType(typeCompator) {
 function findPreviousTag(tag) {
   const listTags = loadTagLists(tag);
 
-  // return semverTags.length > 0 ? semverTags[0] : null;
   let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
   if (tag.semver.type === TAG_TYPE.PATCH) {
     filterBy = TAG_TYPE.PATCH;
   }
 
   const semverTags = listTags
-    .map(parseRefName)
-    .filter(filterTagByType(filterBy))
-    .sort(compareTags);
+    .map(parseRefName) 
+    .filter(t => t.namespace === tag.namespace) // tem que ser do mesmo namespace
+    .filter(t => t.version !== tag.version) // remove a propria tag em questao
+    .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
+    .sort(compareTags); // ordena pela versao mais recente
 
   return semverTags.length > 0 ? semverTags[0] : null;
 }
@@ -90,7 +91,7 @@ function findPreviousTag(tag) {
 function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
-    const ref = "refs/tags/namespace/v1.1.0";
+    const ref = "refs/tags/namespace/v1.2.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
 
