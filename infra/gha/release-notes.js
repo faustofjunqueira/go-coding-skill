@@ -1,16 +1,34 @@
 // inputs
 // - tag criada <namespace>/v<semver>
 
+const TAG_TYPE = {
+  MAJOR: "major",
+  MINOR: "minor",
+  PATCH: "patch",
+  PRE_RELEASE: "pre-release",
+};
+
 function parseRefName(refName) {
   const [namespace, version] = refName.split("/");
   const [_, semver] = version.split("v");
   const [major, minor, patchWithPreRelease] = semver.split(".");
   const [patch, preRelease] = patchWithPreRelease.split("-");
 
+  let type;
+  if (preRelease) {
+    type = TAG_TYPE.PRE_RELEASE;
+  } else if (minor === "0" && patch === "0") {
+    type = TAG_TYPE.MAJOR;
+  } else if (patch === "0") {
+    type = TAG_TYPE.MINOR;
+  } else {
+    type = TAG_TYPE.PATCH;
+  }
+
   return {
     namespace,
     version,
-    semver: { semver, major, minor, patch, preRelease },
+    semver: { semver, type, major, minor, patch, preRelease },
   };
 }
 
@@ -28,8 +46,8 @@ function createsReleaseNotes({ github, context, core, glob }) {
 
     console.log(refName);
 
-    if (type == 'heads') {
-        throw new Error('This action only works with tags');
+    if (type == "heads") {
+      throw new Error("This action only works with tags");
     }
 
     if (!checkIfTagIsSemver(refName)) {
@@ -38,7 +56,12 @@ function createsReleaseNotes({ github, context, core, glob }) {
 
     const tag = parseRefName(refName);
 
-    console.log(tag)
+    console.log(parseRefName("namespace/v1.2.3"));
+    console.log(parseRefName("namespace/v1.2.0"));
+    console.log(parseRefName("namespace/v1.0.0"));
+    console.log(parseRefName("namespace/v1.0.0-1"));
+    console.log(parseRefName("namespace/v1.0.21-112"));
+    console.log(parseRefName("namespace/v1.1.21-1"));
 
     // Verifica a tag
     // Verifica se major, minor, patch ou pre-release
@@ -57,6 +80,6 @@ function createsReleaseNotes({ github, context, core, glob }) {
   } catch (error) {
     core.setFailed(error.message);
   }
-};
+}
 
 module.exports = createsReleaseNotes;
