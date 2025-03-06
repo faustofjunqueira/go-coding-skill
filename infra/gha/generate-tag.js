@@ -109,19 +109,25 @@ function incrementsTag(previousTag, typeTag) {
   const newTag = { ...previousTag, type: typeTag };
 
   if (typeTag === TAG_TYPE.MAJOR) {
+    console.log("MAJOR")
     newTag.semver.major += 1;
-  } else if (typeTag === TAG_TYPE.MINOR) {
-    newTag.semver.minor += 1;
-  } else if (typeTag === TAG_TYPE.PATCH) {
-    newTag.semver.patch += 1;
-  } else if (typeTag === TAG_TYPE.PRE_RELEASE) {
-    if (!newTag.semver.preRelease && newTag.semver.preRelease !== 0) {
-      newTag.semver.preRelease = 0;
+} else if (typeTag === TAG_TYPE.MINOR) {
+      console.log("minor")
+      newTag.semver.minor += 1;
+    } else if (typeTag === TAG_TYPE.PATCH) {
+      console.log("patch")
+      newTag.semver.patch += 1;
+    } else if (typeTag === TAG_TYPE.PRE_RELEASE) {
+      console.log("rc")
+      if (!newTag.semver.preRelease && newTag.semver.preRelease !== 0) {
+        console.log("rc zerado")
+        newTag.semver.preRelease = 0;
     } else {
+        console.log("rc incrementado")
       newTag.semver.preRelease += 1;
     }
   }
-
+  
   return newTag;
 }
 
@@ -157,6 +163,8 @@ async function generateTag(
         typeTag = TAG_TYPE.PATCH;
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
     }
+
+    console.log("type", typeTag)
 
     const listtag = loadTagLists(namespace);
     console.log("listtag", listtag.map((t) => t.version()))
