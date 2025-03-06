@@ -90,7 +90,7 @@ function findPreviousTag(tag) {
 function createsReleaseNotes({ github, context, core, glob }) {
   try {
     // const ref = context.ref;
-    const ref = "refs/tags/namespace/v1.2.3";
+    const ref = "refs/tags/namespace/v1.1.0";
     const [, type, ...refsName] = ref.split("/");
     const refName = refsName.join("/");
 
