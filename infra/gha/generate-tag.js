@@ -95,7 +95,7 @@ function loadTagLists(namespace) {
 function findPreviousTag(namespace, listTags, filterTagBy) {
   try {
     if (listTags.length === 0) {
-      return parseRefName(`refs/tags/${namespace}/v0.0.0`);
+      return parseRefName(`${namespace}/v0.0.0`);
     }
 
     const semverTags = listTags
