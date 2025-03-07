@@ -4,7 +4,7 @@ run-name: name-alpha ${{ github.event_name }} ${{ github.ref_name }} by @${{ git
 on:
   push:
     tags:
-      - "name-alpha/v*" # release
+      - "name-gama/v*" # release
     branches:
       - main
     # paths:
