@@ -92,12 +92,8 @@ function loadTagLists(namespace) {
   }
 }
 
-function findPreviousTag(namespace, listTags, filterTagBy) {
+function findPreviousTag(listTags, filterTagBy) {
   try {
-    if (listTags.length === 0) {
-      return parseRefName(`${namespace}/v0.0.0`);
-    }
-
     const semverTags = listTags
       .filter(filterTagByType(filterTagBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
       .sort(compareTags); // ordena pela versao mais recente
@@ -154,6 +150,10 @@ function generateTag(
     }
     
     const listtag = loadTagLists(namespace);
+    if (listtag.length === 0) {
+      return `${namespace}/v0.0.0`;
+    }
+
     const previousTag = findPreviousTag(namespace, listtag, filterTagBy);
     const newTag = incrementsTag(previousTag, typeTag);
     return newTag.version();
