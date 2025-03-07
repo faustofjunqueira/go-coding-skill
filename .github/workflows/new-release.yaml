@@ -94,7 +94,7 @@ jobs:
               ${{ github.event.inputs.minor }}, 
               ${{ github.event.inputs.hotfix }},  
               ${{ github.event.inputs.rc }}
-            ))
+            )
 
       - name: create tag
         id: create_tag_generated
