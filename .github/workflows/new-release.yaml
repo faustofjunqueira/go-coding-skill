@@ -63,7 +63,7 @@ jobs:
           fi
 
           if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
-              echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist. Valid namespaces are: $(ls ./internal | paste -sd \" \" -)"
+              echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist. Valid namespaces are: $(ls ./internal | paste -sd ; -)"
               exit 1
           fi
 
