@@ -355,6 +355,8 @@ async function createsReleaseNotes({ github, context, core, glob }) {
       body: releaseNotes,
     });
 
+    console.log(response);
+
     if (response.status != 201) {
       throw new Error(`Failed to create release: ${JSON.stringify(response)}`);
     }
@@ -366,6 +368,7 @@ async function createsReleaseNotes({ github, context, core, glob }) {
     // Primeira tag, não tem Previous tag, entao como fica?
     // sempre que criar um novo namespace, criar a tag <namespace>/v0.0.0
   } catch (error) {
+    console.log(error)
     core.setFailed(error.message);
   }
 }
