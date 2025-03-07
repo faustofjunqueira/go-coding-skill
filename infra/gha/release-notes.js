@@ -323,6 +323,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
 
     return templateMD
       .replaceAll("$$FOOTER$$", footer)
+      .replaceAll("$$VERSION$$", completeTagName(tag))
       .replaceAll("$$CATEGORIES$$", categories.join("\n"))
 
   } catch (error) {
