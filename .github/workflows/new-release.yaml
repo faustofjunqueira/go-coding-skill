@@ -9,12 +9,12 @@ on:
         required: true
         default: ""
       minor:
-        description: "Minor"
+        description: "Minor (recommended)"
         required: false
         default: true
         type: boolean
       hotfix:
-        description: "Hotfix"
+        description: "Hotfix (non main branch)"
         required: false
         default: false
         type: boolean
@@ -63,7 +63,7 @@ jobs:
           fi
 
           if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
-              echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist. Valid namespaces are: $(ls ./internal | paste -sd ; -)"
+              echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist. Valid namespaces are: $(ls ./internal | paste -sd ';' -)"
               exit 1
           fi
 
