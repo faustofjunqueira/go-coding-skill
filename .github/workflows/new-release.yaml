@@ -96,8 +96,15 @@ jobs:
               ${{ github.event.inputs.rc }}
             )
 
+      - name: set up git
+        run: |
+          git config --global user.name "stncard[bot]"
+          git config --global user.email "stncard[bot]+noreply@stone.credit"
+          git remote set-url origin https://x-access-token:${{ secrets.TOKEN }}@github.com/${{ github.repository }}
+
       - name: create tag
         id: create_tag_generated
+        if: ${{ github.event.inputs.tag == '' }}
         run: |
           git tag -a "${{ steps.find_tag.outputs.result }}" -m "auto generated tag: ${{ steps.find_tag.outputs.result }}"
           git push origin "${{ steps.find_tag.outputs.result }}"
@@ -105,6 +112,7 @@ jobs:
       
       - name: create tag
         id: create_tag_self_defined
+        if: ${{ github.event.inputs.tag != '' }}
         run: |
           git tag -a "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}" -m "self defined tag: ${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}"
           git push origin "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}"
