@@ -139,7 +139,7 @@ jobs:
               type: "commit",
               tagger: {
                 name: taggerName,
-                email: taggerEmail,
+                // email: taggerEmail,
                 date: new Date().toISOString(),
               }
             });
