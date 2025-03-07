@@ -6,7 +6,7 @@ const templateMD = `
 $$CATEGORIES$$
 
 ---
-:monocle_face: Compare: [$$PREVIOUS_VERSIONS$$ .. $$VERSION$$](https://github.com/$$REPO_NAME$$/compare/$$PREVIOUS_VERSIONS$$..$$VERSION$$)
+$$FOOTER$$
 `;
 
 const categoryTemplate = `
@@ -314,17 +314,23 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
       })
       .filter((f) => f !== "");
 
+    let footer = "";
+    if (previousTag) {
+      footer = `:monocle_face: Compare: [${completeTagName(previousTag)} .. ${completeTagName(tag)}](https://github.com/${repoName}/compare/completeTagName(previousTag)..${completeTagName(tag)})`
+    } else {
+      footer = `:confetti_ball: :sparkles: First release! :sparkles: :confetti_ball:`;
+    }
+
     return templateMD
-      .replaceAll("$$VERSION$$", completeTagName(tag))
+      .replaceAll("$$FOOTER$$", footer)
       .replaceAll("$$CATEGORIES$$", categories.join("\n"))
-      .replaceAll("$$PREVIOUS_VERSIONS$$", completeTagName(previousTag))
-      .replaceAll("$$REPO_NAME$$", repoName);
+
   } catch (error) {
     throw new Error(`Failed to write template: ${error.message}`);
   }
 }
 
-async function createsReleaseNotes({ github, context, core, glob }) {
+async function createsReleaseNotes({ github, context, core }) {
   try {
     const ref = context.ref;
     const repoName = [context.repo.owner, context.repo.repo].join("/");
