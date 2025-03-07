@@ -9,7 +9,6 @@ const TAG_TYPE = {
 
 function execCommand(command) {
   try {
-    console.log("command", command);
     return execSync(command, { encoding: "utf-8" }).trim();
   } catch (error) {
     throw new Error(`Failed to execute command: ${error.message}`);
@@ -47,7 +46,11 @@ function parseRefName(refName) {
       version() {
         return `${this.namespace}/v${this.semver.major}.${this.semver.minor}.${
           this.semver.patch
-        }${Number.isInteger(this.semver.preRelease) ? `-${this.semver.preRelease}` : ""}`;
+        }${
+          Number.isInteger(this.semver.preRelease)
+            ? `-${this.semver.preRelease}`
+            : ""
+        }`;
       },
     };
   } catch (error) {
@@ -109,45 +112,31 @@ function incrementsTag(previousTag, typeTag) {
   const newTag = { ...previousTag, type: typeTag };
 
   if (typeTag === TAG_TYPE.MAJOR) {
-    console.log("MAJOR")
     newTag.semver.major += 1;
-} else if (typeTag === TAG_TYPE.MINOR) {
-      console.log("minor")
-      newTag.semver.minor += 1;
-    } else if (typeTag === TAG_TYPE.PATCH) {
-      console.log("patch")
-      newTag.semver.patch += 1;
-    } else if (typeTag === TAG_TYPE.PRE_RELEASE) {
-      console.log("rc")
-      if (!newTag.semver.preRelease && newTag.semver.preRelease !== 0) {
-        console.log("rc zerado")
-        newTag.semver.preRelease = 0;
+  } else if (typeTag === TAG_TYPE.MINOR) {
+    newTag.semver.minor += 1;
+  } else if (typeTag === TAG_TYPE.PATCH) {
+    newTag.semver.patch += 1;
+  } else if (typeTag === TAG_TYPE.PRE_RELEASE) {
+    if (!newTag.semver.preRelease && newTag.semver.preRelease !== 0) {
+      newTag.semver.preRelease = 0;
     } else {
-        console.log("rc incrementado")
       newTag.semver.preRelease += 1;
     }
   }
-  
+
   return newTag;
 }
 
-async function generateTag(
+function generateTag(
+  { core },
   namespace,
   major,
   minor,
   patch,
-  preRelease,
-  tag
+  preRelease
 ) {
   try {
-    // console.log(
-    //     "namespace", namespace,
-    //     "major", major,
-    //     "minor", minor,
-    //     "patch", patch,
-    //     "preRelease", preRelease,
-    // );
-
     let filterTagBy = 0;
     let typeTag = 0;
     if (preRelease) {
@@ -160,18 +149,13 @@ async function generateTag(
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
       typeTag = TAG_TYPE.MAJOR;
     } else if (patch) {
-        typeTag = TAG_TYPE.PATCH;
-      filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PRE_RELEASE;
+      typeTag = TAG_TYPE.PATCH;
+      filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PATCH;
     }
-
-    console.log("type", typeTag)
-
+    
     const listtag = loadTagLists(namespace);
-    console.log("listtag", listtag.map((t) => t.version()))
     const previousTag = findPreviousTag(namespace, listtag, filterTagBy);
-    console.log("previousTag", previousTag.version())
     const newTag = incrementsTag(previousTag, typeTag);
-    console.log("newTag", newTag.version())
     return newTag.version();
   } catch (error) {
     core.setFailed(error.message);

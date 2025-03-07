@@ -2,98 +2,113 @@ name: Release / New
 run-name: ${{ github.event_name }} by @${{ github.actor }}
 
 on:
-    workflow_dispatch:
-        inputs:
-            namespace:
-                description: 'Namespace'
-                required: true
-                default: ''
-            minor:
-                description: 'Minor'
-                required: false
-                default: true
-                type: boolean
-            hotfix:
-                description: 'Hotfix'
-                required: false
-                default: false
-                type: boolean
-            rc:
-                description: 'Release Candidate'
-                required: false
-                default: false
-                type: boolean
-            major:
-                description: 'Breaking Change'
-                required: false
-                default: false
-                type: boolean
-            tag:
-                description: 'Tag'
-                required: false
-                default: ''
-                type: string
+  workflow_dispatch:
+    inputs:
+      namespace:
+        description: "Namespace"
+        required: true
+        default: ""
+      minor:
+        description: "Minor"
+        required: false
+        default: true
+        type: boolean
+      hotfix:
+        description: "Hotfix"
+        required: false
+        default: false
+        type: boolean
+      rc:
+        description: "Release Candidate"
+        required: false
+        default: false
+        type: boolean
+      major:
+        description: "Breaking Change"
+        required: false
+        default: false
+        type: boolean
+      tag:
+        description: "Tag"
+        required: false
+        default: ""
+        type: string
 
 jobs:
-    generate-tags:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                fetch-depth: 0
+  generate-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-            - name: validate inputs
-              run: |
-                    if [ -z "${{ github.event.inputs.namespace }}" ]; then
-                        echo "::error::namespace is required"
-                        exit 1
-                    fi
+      - name: validate inputs
+        run: |
+          if [ -z "${{ github.event.inputs.namespace }}" ]; then
+              echo "::error::namespace is required"
+              exit 1
+          fi
 
-                    count=0
+          count=0
 
-                    if [ "${{ github.event.inputs.major }}" = "true" ]; then count=$((count + 1)); fi
-                    if [ "${{ github.event.inputs.minor }}" = "true" ]; then count=$((count + 1)); fi
-                    if [ "${{ github.event.inputs.hotfix }}" = "true" ]; then count=$((count + 1)); fi
-                    if [ "${{ github.event.inputs.rc }}" = "true" ]; then count=$((count + 1)); fi
-                    if [ -n "${{ github.event.inputs.tag }}" ]; then count=$((count + 1)); fi
+          if [ "${{ github.event.inputs.major }}" = "true" ]; then count=$((count + 1)); fi
+          if [ "${{ github.event.inputs.minor }}" = "true" ]; then count=$((count + 1)); fi
+          if [ "${{ github.event.inputs.hotfix }}" = "true" ]; then count=$((count + 1)); fi
+          if [ "${{ github.event.inputs.rc }}" = "true" ]; then count=$((count + 1)); fi
+          if [ -n "${{ github.event.inputs.tag }}" ]; then count=$((count + 1)); fi
 
-                    if [ $count -ne 1 ]; then
-                        echo "::error::Only one of minor, hotfix, rc, or tag must be specified"
-                        exit 1
-                    fi
+          if [ $count -ne 1 ]; then
+              echo "::error::Only one of minor, hotfix, rc, or tag must be specified"
+              exit 1
+          fi
 
-                    if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
-                        echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist"
-                        exit 1
-                    fi
+          if [ ! -d "./internal/${{ github.event.inputs.namespace }}" ]; then
+              echo "::error::Invalid namespace: ${{ github.event.inputs.namespace }} does not exist"
+              exit 1
+          fi
 
-                    if [ -n "${{ github.event.inputs.tag }}" ]; then
-                        if ! echo "${{ github.event.inputs.tag }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$'; then
-                            echo "::error::Invalid tag format: ${{ github.event.inputs.tag }}. Must be a valid semver (e.g., v0.0.0-0)"
-                            exit 1
-                        fi
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+              if ! echo "${{ github.event.inputs.tag }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$'; then
+                  echo "::error::Invalid tag format: ${{ github.event.inputs.tag }}. Must be a valid semver (e.g., v0.0.0-0)"
+                  exit 1
+              fi
 
-                        if git rev-parse "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}" >/dev/null 2>&1; then
-                            echo "::error::Tag already exists: ${{ github.event.inputs.tag }} to namespace ${{ github.event.inputs.namespace }} "
-                            exit 1
-                        fi
-                    fi
+              if git rev-parse "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}" >/dev/null 2>&1; then
+                  echo "::error::Tag already exists: ${{ github.event.inputs.tag }} to namespace ${{ github.event.inputs.namespace }} "
+                  exit 1
+              fi
+          fi
+      - name: find tag
+        id: find_tag
+        uses: actions/github-script@v7
+        if: ${{ github.event.inputs.tag == '' }}
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          result-encoding: string
+          script: |
+            const script = require('./infra/gha/generate-tag.js')
+            return await script(
+            {core},
+              "${{ github.event.inputs.namespace }}", 
+              ${{ github.event.inputs.major }}, 
+              ${{ github.event.inputs.minor }}, 
+              ${{ github.event.inputs.hotfix }},  
+              ${{ github.event.inputs.rc }}
+            ))
 
-            
-            - name: generate
-              uses: actions/github-script@v7
-              with:
-                  github-token: ${{ secrets.TOKEN }}
-                  script: |
-                    const script = require('./infra/gha/generate-tag.js')
-                    console.log(await script(
-                      "${{ github.event.inputs.namespace }}", 
-                      ${{ github.event.inputs.major }}, 
-                      ${{ github.event.inputs.minor }}, 
-                      ${{ github.event.inputs.hotfix }},  
-                      ${{ github.event.inputs.rc }}, 
-                      "${{ github.event.inputs.tag }}"
-                    ))
-          
+      - name: create tag
+        id: create_tag_generated
+        run: |
+          git tag -a "${{ steps.find_tag.outputs.result }}" -m "auto generated tag: ${{ steps.find_tag.outputs.result }}"
+          git push origin "${{ steps.find_tag.outputs.result }}"
+          echo "::notice::Tag created (auto-generated): ${{ steps.find_tag.outputs.result }}"
+      
+      - name: create tag
+        id: create_tag_self_defined
+        run: |
+          git tag -a "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}" -m "self defined tag: ${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}"
+          git push origin "${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}"
+          echo "::notice::Tag created (self-defined): ${{ github.event.inputs.namespace }}/${{ github.event.inputs.tag }}"
 
-                    
+
+
