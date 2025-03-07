@@ -47,7 +47,7 @@ function parseRefName(refName) {
       version() {
         return `${this.namespace}/v${this.semver.major}.${this.semver.minor}.${
           this.semver.patch
-        }${this.semver.preRelease ? `-${this.semver.preRelease}` : ""}`;
+        }${isNaN(this.semver.preRelease) ? `-${this.semver.preRelease}` : ""}`;
       },
     };
   } catch (error) {
