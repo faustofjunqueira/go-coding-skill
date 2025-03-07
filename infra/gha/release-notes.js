@@ -346,6 +346,21 @@ async function createsReleaseNotes({ github, context, core, glob }) {
 
     const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
 
+    // Verifica se a release já existe
+    const existingReleases = await github.rest.repos.listReleases({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+    });
+
+    const releaseExists = existingReleases.data.some(
+      (release) => release.tag_name === completeTagName(tag)
+    );
+
+    if (releaseExists) {
+      core.notice(`Release for tag ${completeTagName(tag)} already exists.`);
+      return;
+    }
+
     // cria a release no github    
     const response = await github.rest.repos.createRelease({
       owner: context.repo.owner,
