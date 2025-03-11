@@ -1,0 +1,36 @@
+name: release notes
+run-name: release ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+
+on:
+  workflow_call:
+    inputs:
+      RUNS_ON:
+        description: Choose runner type.
+        required: false
+        type: string
+        default: small-runner
+    secrets:
+      GITHUB_TOKEN:
+        description: 'Token to access the Github API'
+        required: true
+
+
+permissions:
+  contents: read
+
+jobs:
+  update_release_draft:
+    name: generate
+    permissions:
+      contents: write
+    runs-on: ${{ inputs.RUNS_ON }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('./infra/gha/release-notes.js')
+            console.log(await script({github, context, core, glob}))

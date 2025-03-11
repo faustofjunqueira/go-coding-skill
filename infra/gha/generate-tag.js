@@ -148,7 +148,7 @@ function generateTag(
       typeTag = TAG_TYPE.PATCH;
       filterTagBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR | TAG_TYPE.PATCH;
     }
-    
+
     const listtag = loadTagLists(namespace);
     if (listtag.length === 0) {
       return `${namespace}/v0.0.0`;

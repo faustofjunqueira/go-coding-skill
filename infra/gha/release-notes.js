@@ -368,7 +368,7 @@ async function createsReleaseNotes({ github, context, core }) {
       return;
     }
 
-    // cria a release no github    
+    // cria a release no github
     const response = await github.rest.repos.createRelease({
       owner: context.repo.owner,
       repo: context.repo.repo,
