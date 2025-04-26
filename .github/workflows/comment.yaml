@@ -56,55 +56,66 @@ jobs:
             const commentID = context.payload.comment.id;
             const prOwner = context.payload.issue.user.login;
 
-            // Fetch all comments from the PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
+            try {
+              // Fetch all comments from the PR
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
 
-            const sortedComments = comments
-              .filter(comment => comment.body.trim() === '/deploy-stg' || comment.body.trim() === '/approve')
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));            
+              if (!comments || comments.length === 0) {
+                await failedApprove(commentID, "No comments found on the PR!");
+                return "false"
+              }
 
-            const primeDeployRequest = sortedComments.find(comment => comment.body.trim() === '/deploy-stg');
+              const sortedComments = comments
+                .filter(comment => comment.body.trim() === '/deploy-stg' || comment.body.trim() === '/approve')
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));            
 
-            console.log(`Prime Deploy Request: ${JSON.stringify(primeDeployRequest)}`);
+              const primeDeployRequest = sortedComments.find(comment => comment.body.trim() === '/deploy-stg');
+              
+              if (!primeDeployRequest) {
+                await failedApprove(commentID, "No deploy request found, drop the approve request!");
+                return "false"
+              }
 
-            const deployRequestAmount = sortedComments.filter(comment => comment.body.trim() === '/deploy-stg').length;
-            const approveAmount = sortedComments.filter(comment => comment.body.trim() === '/approve').length;
-            
-            console.log(`Deploy Request Amount: ${deployRequestAmount} / Approve Amount: ${approveAmount}`);
+              const deployRequestAmount = sortedComments.filter(comment => comment.body.trim() === '/deploy-stg').length;
+              const approveAmount = sortedComments.filter(comment => comment.body.trim() === '/approve').length;
+              
+              // Deploy Request Amount must be has at least 1
+              if (deployRequestAmount != approveAmount + 1) {
+                await failedApprove(commentID, "Deploy request amount must be 1 more than approve amount. Drop all deploy and approve requests!");
+                return "false"
+              }
 
-            // Deploy Request Amount must be has at least 1
-            if (deployRequestAmount != approveAmount + 1) {
-              await failedApprove(commentID, "Deploy request amount must be 1 more than approve amount. Drop all deploy and approve requests!");
-              return "false"
-            }
+              // Deploy just can called by the author of the PR
+              if (primeDeployRequest.user.login !== prOwner) {
+                await failedApprove(commentID, `Requestor @${primeDeployRequest.user.login} is not the author of the PR(@prOwner), drop the deploy request!`);
+                return "false"
+              }
 
-            // Deploy just can called by the author of the PR
-            if (primeDeployRequest.user.login !== prOwner) {
-              await failedApprove(commentID, `Requestor @${primeDeployRequest.user.login} is not the author of the PR(@prOwner), drop the deploy request!`);
-              return "false"
-            }
+              // Check if approver and requestor are the same
+              if (approveAmount > 0 && primeDeployRequest.user.login === user) {
+                await failedApprove(commentID, `Requestor ${user} is the same as the approver, drop the deploy request!`);
+                return "false"
+              }
 
-            // Check if approver and requestor are the same
-            if (approveAmount > 0 && primeDeployRequest.user.login === user) {
-              await failedApprove(commentID, `Requestor ${user} is the same as the approver, drop the deploy request!`);
-              return "false"
-            }
+              // Check if the approver is in the approver team
+              const approverTeam = 'banking-eng-cartao-lideranca';
+              const { data: teamMembers } = await github.rest.teams.listMembersInOrg({
+                org: context.repo.owner,
+                team_slug: approverTeam,
+              });
 
-            // Check if the approver is in the approver team
-            const approverTeam = 'banking-eng-cartao-lideranca';
-            const { data: teamMembers } = await github.rest.teams.listMembersInOrg({
-              org: context.repo.owner,
-              team_slug: approverTeam,
-            });
-
-            const approver = teamMembers.find(member => member.login === user);
-            if (!approver) {
-              console.log(`User ${user} is not in the approver team ${approverTeam}`);
-              return "false"
+              const approver = teamMembers.find(member => member.login === user);
+              if (!approver) {
+                console.log(`User ${user} is not in the approver team ${approverTeam}`);
+                return "false"
+              }
+            }catch(e) {
+              core.error(`Error: ${e}`);
+              return "false";
             }
 
             return "true"
