@@ -23,6 +23,7 @@ jobs:
           echo ">> ${{github.event.issue.pull_request}}"
           echo ">> ${{github.event.issue.number}}"
       - name: waiting approvers comment
+        if: github.actor == 'faustofjunqueira'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.TOKEN }}
@@ -33,12 +34,12 @@ jobs:
             const commenter = context.payload.comment.user.login;
             console.log(`Comment made by: ${commenter}`);
 
-            // await github.rest.issues.createComment({
-              // owner: context.repo.owner,
-              // repo: context.repo.repo,
-              // issue_number: issueNumber,
-              // body: commentBody,
-            // });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: commentBody,
+            });
 
       # - name: Check for Reaction and Team Membership
       #   id: check-reaction
