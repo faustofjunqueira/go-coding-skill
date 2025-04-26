@@ -12,26 +12,49 @@ permissions:
   issues: write # Required to post comments
 
 jobs:
-  deploy-staging:
-    if: ${{ github.event.issue.pull_request && github.event.comment.body == '/deploy-stg' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: echo
-        run: |
-          echo ">> ${{github.event.comment.body}}"
-          echo ">> ${{github.event.issue.pull_request}}"
-          echo ">> ${{github.event.issue.number}}"
-
   approve-deploy:
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check PR Comments for /deploy-stg
+        id: check-pr-comments
         uses: actions/github-script@v6
         with:
           script: |
+            async function failedApprove(commentId, reason) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+              });
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `[BOT] **Deploy approve failed**: ${reason}`,
+              });
+            }
+
+            async function successApprove(commentId) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+              });
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `[BOT] **Deploy approve success by @${context.payload.comment.user.login}**`,
+              });
+            }
+
             const prNumber = context.payload.issue.number;
             const user = context.payload.comment.user.login;
+            const commentID = context.payload.comment.id;
+            const prOwner = context.payload.issue.user.login;
 
             // Fetch all comments from the PR
             const { data: comments } = await github.rest.issues.listComments({
@@ -52,3 +75,43 @@ jobs:
             const approveAmount = sortedComments.filter(comment => comment.body.trim() === '/approve').length;
             
             console.log(`Deploy Request Amount: ${deployRequestAmount} / Approve Amount: ${approveAmount}`);
+
+            // Deploy Request Amount must be has at least 1
+            if (deployRequestAmount != approveAmount + 1) {
+              await failedApprove(commentID, "Deploy request amount must be 1 more than approve amount. Drop all deploy and approve requests!");
+              return "false"
+            }
+
+            // Deploy just can called by the author of the PR
+            if (primeDeployRequest.user.login !== prOwner) {
+              await failedApprove(commentID, `Requestor @${primeDeployRequest.user.login} is not the author of the PR(@prOwner), drop the deploy request!`);
+              return "false"
+            }
+
+            // Check if approver and requestor are the same
+            if (approveAmount > 0 && primeDeployRequest.user.login === user) {
+              await failedApprove(commentID, `Requestor ${user} is the same as the approver, drop the deploy request!`);
+              return "false"
+            }
+
+            // Check if the approver is in the approver team
+            const approverTeam = 'banking-eng-cartao-lideranca';
+            const { data: teamMembers } = await github.rest.teams.listMembersInOrg({
+              org: context.repo.owner,
+              team_slug: approverTeam,
+            });
+
+            const approver = teamMembers.find(member => member.login === user);
+            if (!approver) {
+              console.log(`User ${user} is not in the approver team ${approverTeam}`);
+              return "false"
+            }
+
+            return "true"
+      
+      # - name: Check Approver Team
+      #   if: ${{ steps.check-pr-comments.outputs.result == 'true' }}
+      #   run: 
+        
+            
+
