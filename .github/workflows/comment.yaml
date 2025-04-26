@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   deploy-staging:
-
+    if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
@@ -34,11 +34,14 @@ jobs:
             const commenter = context.payload.comment.user.login;
             console.log(`Comment made by: ${commenter}`);
 
+            const parentCommentId = context.payload.comment.id;
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
               body: commentBody,
+              in_reply_to: parentCommentId, // This makes the comment a child of the main comment
             });
 
       # - name: Check for Reaction and Team Membership
