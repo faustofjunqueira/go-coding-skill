@@ -34,7 +34,7 @@ jobs:
             const user = context.payload.comment.user.login;
 
             // Fetch all comments from the PR
-            const { data: comments } = await github.issues.listComments({
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
