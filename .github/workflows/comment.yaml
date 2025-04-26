@@ -131,6 +131,10 @@ jobs:
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Detect Namespace
         id: detect_namespace
         env:
