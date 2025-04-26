@@ -40,16 +40,15 @@ jobs:
               issue_number: prNumber,
             });
 
-            // Check if there is a /deploy-stg comment by the same user
-            const hasDeployStgComment = comments.some(comment => 
-              comment.body.trim() === '/deploy-stg' && comment.user.login === user
-            );
+            const sortedComments = comments
+              .filter(comment => comment.body.trim() === '/deploy-stg' || comment.body.trim() === '/approve')
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));            
 
-            console.log(`Comments: ${JSON.stringify(comments[0])}`);
+            const primeDeployRequest = sortedComments.find(comment => comment.body.trim() === '/deploy-stg');
+
+            console.log(`Prime Deploy Request: ${JSON.stringify(primeDeployRequest)}`);
+
+            const deployRequestAmount = sortedComments.filter(comment => comment.body.trim() === '/deploy-stg').length;
+            const approveAmount = sortedComments.filter(comment => comment.body.trim() === '/approve').length;
             
-
-            if (!hasDeployStgComment) {
-              core.setFailed("No /deploy-stg comment found by the same user.");
-            } else {
-              console.log("Found /deploy-stg comment by the same user.");
-            }
+            console.log(`Deploy Request Amount: ${deployRequestAmount} / Approve Amount: ${approveAmount}`);
