@@ -1,0 +1,95 @@
+name: Deploy on Staging
+run-name: deploy stg ${{ github.event.issue.number }} by @${{ github.actor }}
+
+on:
+  issue_comment:
+    types:
+      - created
+      - edited
+
+permissions:
+  pull-requests: write
+  issues: write # Required to post comments
+
+
+jobs:
+  deploy-staging:
+
+    runs-on: small-runner
+    steps:
+      - name: echo
+        run: |
+          echo ">> ${{github.event.comment.body}}"
+          echo ">> ${{github.event.issue.pull_request}}"
+          echo ">> ${{github.event.issue.number}}"
+      - name: waiting approvers comment
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          script: |
+            const issueNumber = context.payload.issue.number;
+            const commentBody = "we are waiting approvers";
+
+            const commenter = context.payload.comment.user.login;
+            console.log(`Comment made by: ${commenter}`);
+
+            // await github.rest.issues.createComment({
+              // owner: context.repo.owner,
+              // repo: context.repo.repo,
+              // issue_number: issueNumber,
+              // body: commentBody,
+            // });
+
+      # - name: Check for Reaction and Team Membership
+      #   id: check-reaction
+      #   uses: actions/github-script@v6
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     result-encoding: string
+      #     script: |
+      #       const commentId = context.payload.comment.id;
+      #       const org = context.repo.owner; // Get organization name from context
+      #       const teamSlug = 'banking-produto-cartao-lideranca';
+
+      #       console.log(`Checking reactions for comment ID: ${commentId} in organization: ${org} and team: ${teamSlug}`);
+
+      #       // Get reactions for the comment
+      #       const reactions = await github.rest.reactions.listForIssueComment({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         comment_id: commentId,
+      #       });
+
+      #       // Filter for thumbs-up reactions
+      #       const thumbsUpReactors = reactions.data.filter(reaction => reaction.content === '+1');
+
+      #       // Check if any reactor is in the specified team
+      #       for (const reactor of thumbsUpReactors) {
+      #         const username = reactor.user.login;
+
+      #         try {
+      #           const membership = await github.rest.teams.getMembershipForUserInOrg({
+      #             org,
+      #             team_slug: teamSlug,
+      #             username,
+      #           });
+
+      #           if (membership.data.state === 'active') {
+      #             console.log(`Valid reaction from team member: ${username}`);
+      #             return "true";
+      #           }
+      #         } catch (error) {
+      #           if (error.status !== 404) {
+      #             throw error;
+      #           }
+      #         }
+      #       }
+
+      #       console.log('No valid reactions from team members found.');
+      #       return "false";
+
+      # - name: Deploy to Staging
+      #   if: ${{ steps.check-reaction.outputs.result == 'true' }}
+      #   run: |
+      #     echo "Deploying to staging environment..."
+      #     # Add your deployment script or commands here
