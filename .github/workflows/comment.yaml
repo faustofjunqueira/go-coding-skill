@@ -23,13 +23,13 @@ jobs:
           echo ">> ${{github.event.issue.pull_request}}"
           echo ">> ${{github.event.issue.number}}"
       - name: waiting approvers comment
-        if: github.actor == 'faustofjunqueira'
+        if: github.event.comment.body == '/deploy-stg'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.TOKEN }}
           script: |
             const issueNumber = context.payload.issue.number;
-            const commentBody = "we are waiting approvers";
+            const commentBody = "[BOT] :warning: _We are waiting for the approvers to approve the deployment :rocket:._ #banking-eng-cartao-lideranca";
 
             const commenter = context.payload.comment.user.login;
             console.log(`Comment made by: ${commenter}`);
