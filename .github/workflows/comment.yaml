@@ -15,7 +15,7 @@ permissions:
 jobs:
   deploy-staging:
 
-    runs-on: small-runner
+    runs-on: ubuntu-latest
     steps:
       - name: echo
         run: |
