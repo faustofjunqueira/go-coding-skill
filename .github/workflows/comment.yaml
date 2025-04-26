@@ -20,6 +20,7 @@ jobs:
         id: check-pr-comments
         uses: actions/github-script@v6
         with:
+          result-encoding: string
           script: |
             async function failedApprove(commentId, reason) {
               await github.rest.issues.deleteComment({
@@ -123,6 +124,20 @@ jobs:
       # - name: Check Approver Team
       #   if: ${{ steps.check-pr-comments.outputs.result == 'true' }}
       #   run: 
-        
-            
-
+  
+  detect_namespace:
+    if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect Namespace
+        id: detect_namespace
+        run: |
+          PR_TITLE=$(gh pr view ${{ github.event.issue.number }} --json title -q '.title')
+          echo "pr title = $PR_TITLE"
+          NAMESPACE=$(echo "$PR_TITLE" | grep -oP '(?<=\[.*\]\().*?(?=\))')
+          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUTS
+          echo "namespace: $NAMESPACE"
+          if [ -z "$NAMESPACE" ]; then
+            echo "::error::pr title not follow the pattern."
+            exit 1
+          fi
