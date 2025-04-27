@@ -117,6 +117,9 @@ jobs:
   detect_namespace:
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
     runs-on: ubuntu-latest
+    outputs:
+      APPLICATION_JSON_LIST: ${{ steps.detect_namespace.outputs.APPLICATION_JSON_LIST }}
+      NAMESPACE: ${{ steps.detect_namespace.outputs.NAMESPACE }}
     steps:
       - name: checkout
         uses: actions/checkout@v4
