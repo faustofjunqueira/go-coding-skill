@@ -152,5 +152,5 @@ jobs:
             echo "::error::Namespace '$NAMESPACE' does not exist as a folder in ./internal."
             exit 1
           fi
-          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUTS
+          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
           
