@@ -111,7 +111,6 @@ jobs:
                 throw `User ${user} is not in the approver team ${approverTeam}`
               }
             }catch(e) {
-              core.error(`Error: ${e}`);
               core.setFailed(`Error: ${e}`);
               return "false";
             }
@@ -119,7 +118,7 @@ jobs:
             return "true"
       
       - name: failed approve
-        if: ${{ steps.check-pr-comments.outputs.result == 'false' }}
+        if: ${{ success() }}
         run: 
           echo "failed approve!"
           exit 1
