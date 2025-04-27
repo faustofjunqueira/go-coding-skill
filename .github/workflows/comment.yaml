@@ -112,7 +112,8 @@ jobs:
               }
             }catch(e) {
               core.error(`Error: ${e}`);
-              throw `Error: ${e}`;
+              core.setFailed(`Error: ${e}`);
+              return "false";
             }
 
             return "true"
