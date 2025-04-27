@@ -141,11 +141,16 @@ jobs:
           GH_TOKEN: ${{ secrets.TOKEN }}
         run: |
           PR_TITLE=$(gh pr view ${{ github.event.issue.number }} --json title -q '.title')
-          echo "pr title = $PR_TITLE"
-          NAMESPACE=$(echo "$PR_TITLE" | grep -oP '(?<=\[.*\]\().*?(?=\))')
-          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUTS
+          NAMESPACE=$(echo "$PR_TITLE" | awk '/^\w+\(/ { match($0, /\(([^)]+)\)/, arr); if (arr[1] != "") print arr[1] }')
           echo "namespace: $NAMESPACE"
           if [ -z "$NAMESPACE" ]; then
             echo "::error::pr title not follow the pattern."
             exit 1
           fi
+          #check if namespace exists
+          if [ ! -d "./internal/$NAMESPACE" ]; then
+            echo "::error::Namespace '$NAMESPACE' does not exist as a folder in ./internal."
+            exit 1
+          fi
+          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUTS
+          
