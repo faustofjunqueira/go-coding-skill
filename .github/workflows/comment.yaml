@@ -12,117 +12,108 @@ permissions:
   issues: write # Required to post comments
 
 jobs:
-  approve-deploy:
-    if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check PR Comments for /deploy-stg
-        id: check-pr-comments
-        uses: actions/github-script@v6
-        with:
-          result-encoding: string
-          script: |
-            async function failedApprove(commentId, reason) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: commentId,
-              });
+  # approve-deploy:
+  #   if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check PR Comments for /deploy-stg
+  #       id: check-pr-comments
+  #       uses: actions/github-script@v6
+  #       with:
+  #         result-encoding: string
+  #         script: |
+  #           async function failedApprove(commentId, reason) {
+  #             await github.rest.issues.deleteComment({
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               comment_id: commentId,
+  #             });
 
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: `[BOT] :x: **Deploy approve failed**: ${reason}`,
-              });
+  #             await github.rest.issues.createComment({
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               issue_number: context.issue.number,
+  #               body: `[BOT] :x: **Deploy approve failed**: ${reason}`,
+  #             });
 
-              throw reason;
-            }
+  #             throw reason;
+  #           }
 
-            async function successApprove(commentId) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: commentId,
-              });
+  #           async function successApprove(commentId) {
+  #             await github.rest.issues.deleteComment({
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               comment_id: commentId,
+  #             });
 
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: `[BOT] :white_check_mark: **Deploy approve success by @${context.payload.comment.user.login}**`,
-              });
-            }
+  #             await github.rest.issues.createComment({
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               issue_number: context.issue.number,
+  #               body: `[BOT] :white_check_mark: **Deploy approve success by @${context.payload.comment.user.login}**`,
+  #             });
+  #           }
 
-            const prNumber = context.payload.issue.number;
-            const user = context.payload.comment.user.login;
-            const commentID = context.payload.comment.id;
-            const prOwner = context.payload.issue.user.login;
+  #           const prNumber = context.payload.issue.number;
+  #           const user = context.payload.comment.user.login;
+  #           const commentID = context.payload.comment.id;
+  #           const prOwner = context.payload.issue.user.login;
 
-            try {
-              // Fetch all comments from the PR
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-              });
+  #           try {
+  #             // Fetch all comments from the PR
+  #             const { data: comments } = await github.rest.issues.listComments({
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               issue_number: prNumber,
+  #             });
 
-              if (!comments || comments.length === 0) {
-                await failedApprove(commentID, "No comments found on the PR!");
-              }
+  #             if (!comments || comments.length === 0) {
+  #               await failedApprove(commentID, "No comments found on the PR!");
+  #             }
 
-              const sortedComments = comments
-                .filter(comment => comment.body.trim() === '/deploy-stg' || comment.body.trim() === '/approve')
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));            
+  #             const sortedComments = comments
+  #               .filter(comment => comment.body.trim() === '/deploy-stg' || comment.body.trim() === '/approve')
+  #               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));            
 
-              const primeDeployRequest = sortedComments.find(comment => comment.body.trim() === '/deploy-stg');
+  #             const primeDeployRequest = sortedComments.find(comment => comment.body.trim() === '/deploy-stg');
               
-              if (!primeDeployRequest) {
-                await failedApprove(commentID, "No deploy request found, drop the approve request!");
-              }
+  #             if (!primeDeployRequest) {
+  #               await failedApprove(commentID, "No deploy request found, drop the approve request!");
+  #             }
 
-              const deployRequestAmount = sortedComments.filter(comment => comment.body.trim() === '/deploy-stg').length;
-              const approveAmount = sortedComments.filter(comment => comment.body.trim() === '/approve').length;
+  #             const deployRequestAmount = sortedComments.filter(comment => comment.body.trim() === '/deploy-stg').length;
+  #             const approveAmount = sortedComments.filter(comment => comment.body.trim() === '/approve').length;
               
-              // Deploy Request Amount must be has at least 1
-              if (deployRequestAmount != approveAmount + 1) {
-                await failedApprove(commentID, "Deploy request amount must be 1 more than approve amount. Drop all deploy and approve requests!");
-              }
+  #             // Deploy Request Amount must be has at least 1
+  #             if (deployRequestAmount != approveAmount + 1) {
+  #               await failedApprove(commentID, "Deploy request amount must be 1 more than approve amount. Drop all deploy and approve requests!");
+  #             }
 
-              // Deploy just can called by the author of the PR
-              if (primeDeployRequest.user.login !== prOwner) {
-                await failedApprove(commentID, `Requestor @${primeDeployRequest.user.login} is not the author of the PR(@prOwner), drop the deploy request!`);
-              }
+  #             // Deploy just can called by the author of the PR
+  #             if (primeDeployRequest.user.login !== prOwner) {
+  #               await failedApprove(commentID, `Requestor @${primeDeployRequest.user.login} is not the author of the PR(@prOwner), drop the deploy request!`);
+  #             }
 
-              // Check if approver and requestor are the same
-              if (approveAmount > 0 && primeDeployRequest.user.login === user) {
-                await failedApprove(commentID, `Requestor ${user} is the same as the approver, drop the deploy request!`);
-              }
+  #             // Check if approver and requestor are the same
+  #             if (approveAmount > 0 && primeDeployRequest.user.login === user) {
+  #               await failedApprove(commentID, `Requestor ${user} is the same as the approver, drop the deploy request!`);
+  #             }
 
-              // Check if the approver is in the approver team
-              const approverTeam = 'banking-eng-cartao-lideranca';
-              const { data: teamMembers } = await github.rest.teams.listMembersInOrg({
-                org: context.repo.owner,
-                team_slug: approverTeam,
-              });
+  #             // Check if the approver is in the approver team
+  #             const approverTeam = 'banking-eng-cartao-lideranca';
+  #             const { data: teamMembers } = await github.rest.teams.listMembersInOrg({
+  #               org: context.repo.owner,
+  #               team_slug: approverTeam,
+  #             });
 
-              const approver = teamMembers.find(member => member.login === user);
-              if (!approver) {
-                throw `User ${user} is not in the approver team ${approverTeam}`
-              }
-            }catch(e) {
-              core.setFailed(`Error: ${e}`);
-              return "false";
-            }
+  #             const approver = teamMembers.find(member => member.login === user);
+  #             if (!approver) {
+  #               throw `User ${user} is not in the approver team ${approverTeam}`
+  #             }
+  #           }catch(e) {
+  #             core.setFailed(`Error: ${e}`);
+  #           }
 
-            return "true"
-      
-      - name: failed approve
-        if: ${{ success() }}
-        run: 
-          echo "failed approve!"
-          exit 1
-  
   detect_namespace:
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/approve' }}
     runs-on: ubuntu-latest
