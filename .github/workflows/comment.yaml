@@ -60,20 +60,25 @@ jobs:
             const user = context.payload.comment.user.login;
             const commentID = context.payload.comment.id;
             const prOwner = context.payload.issue.user.login;
+            const commentBody = "${{github.event.comment.body}}";
 
             try {
+              await successApprove(commentID, true);
               return "true"
-              // Check if the comment is from the bypassed user
-              const maintainerTeam = 'banking-eng-cartao-lideranca-maintainers';
-              const { data: maintainerMembers } = await github.rest.teams.listMembersInOrg({
-                org: context.repo.owner,
-                team_slug: maintainerTeam,
-              });
 
-              const isMaintainer = maintainerMembers.some(member => member.login === user);
-              if (isMaintainer) {
-                await successApprove(commentID);
-                return "true";
+              if (commentBody == '/deploy-stg') {
+                // Check if the comment is from the bypassed user
+                const maintainerTeam = 'banking-eng-cartao-lideranca-maintainers';
+                const { data: maintainerMembers } = await github.rest.teams.listMembersInOrg({
+                  org: context.repo.owner,
+                  team_slug: maintainerTeam,
+                });
+  
+                const isMaintainer = maintainerMembers.some(member => member.login === user);
+                if (isMaintainer) {
+                  await successApprove(commentID, true);
+                  return "true";
+                }
               }
 
               // Fetch all comments from the PR
