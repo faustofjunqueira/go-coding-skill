@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/deploy-stg' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Check Deploy
         id: check-deploy
         env:
