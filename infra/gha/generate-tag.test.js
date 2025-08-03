@@ -38,7 +38,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                true, false, false, false
+                'major'
             );
 
             expect(result).toEqual({
@@ -60,7 +60,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, true, false, false
+                'minor'
             );
 
             expect(result).toEqual({
@@ -80,7 +80,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, true, false
+                'patch'
             );
 
             expect(result).toEqual({
@@ -100,7 +100,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, false, true
+                'rc'
             );
 
             expect(result).toEqual({
@@ -133,7 +133,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                true, false, false, false
+                'major'
             );
 
             expect(result.tag).toBe('test-namespace/v3.0.0');
@@ -151,7 +151,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, true, false, false
+                'minor'
             );
 
             expect(result.tag).toBe('test-namespace/v2.1.0');
@@ -177,7 +177,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, true, false, false // Minor bump
+                'minor' // Minor bump
             );
 
             expect(result.tag).toBe('test-namespace/v1.3.0');
@@ -199,7 +199,7 @@ describe('generateTag', () => {
             const patchResult = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, true, false
+                'patch'
             );
             expect(patchResult.hotfixes).toEqual("");
 
@@ -207,7 +207,7 @@ describe('generateTag', () => {
             const majorResult = await generateTag(
                 { github, context },
                 'test-namespace',
-                true, false, false, false
+                'major'
             );
             expect(majorResult.hotfixes).toEqual("");
         });
@@ -219,7 +219,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, true, false
+                'patch'
             );
 
             expect(result.tag).toBe('test-namespace/v2.0.1');
@@ -235,7 +235,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, false, true
+                'rc'
             );
 
             expect(result.tag).toBe('test-namespace/v2.0.0-0');
@@ -257,7 +257,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, false, true
+                'rc'
             );
 
             expect(result.tag).toBe('test-namespace/v2.0.0-2');
@@ -281,7 +281,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, true, false
+                'patch'
             );
 
             expect(result.tag).toBe('test-namespace/v1.2.1');
@@ -302,7 +302,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, true, false
+                'patch'
             );
 
             expect(result.tag).toBe('test-namespace/v1.1.1');
@@ -324,7 +324,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, true, false
+                'patch'
             );
 
             // Should find the latest tag (v1.0.249) and increment patch
@@ -350,41 +350,30 @@ describe('generateTag', () => {
             await expect(generateTag(
                 { github, context },
                 'test-namespace',
-                true, false, false, false
+                'major'
             )).rejects.toThrow('Failed to generate tag: API Error');
         });
 
-        it('should reject when no bump type is selected', async () => {
+        it('should reject when no bump type is provided', async () => {
             const github = createMockGithub([]);
             const context = createMockContext();
 
             await expect(generateTag(
                 { github, context },
                 'test-namespace',
-                false, false, false, false
-            )).rejects.toThrow('At least one bump type must be selected');
+                null
+            )).rejects.toThrow('Bump type is required');
         });
 
-        it('should reject when multiple bump types are selected', async () => {
+        it('should reject when invalid bump type is provided', async () => {
             const github = createMockGithub([]);
             const context = createMockContext();
 
             await expect(generateTag(
                 { github, context },
                 'test-namespace',
-                true, true, false, false
-            )).rejects.toThrow('Only one bump type can be selected at a time. Selected: major, minor');
-        });
-
-        it('should reject when all bump types are selected', async () => {
-            const github = createMockGithub([]);
-            const context = createMockContext();
-
-            await expect(generateTag(
-                { github, context },
-                'test-namespace',
-                true, true, true, true
-            )).rejects.toThrow('Only one bump type can be selected at a time. Selected: major, minor, patch, preRelease');
+                'invalid'
+            )).rejects.toThrow('Invalid bump type: invalid');
         });
     });
 
@@ -403,7 +392,7 @@ describe('generateTag', () => {
             const result = await generateTag(
                 { github, context },
                 'namespace-a',
-                false, false, true, false
+                'patch'
             );
 
             expect(result.tag).toBe('namespace-a/v1.1.1');
@@ -433,7 +422,7 @@ describe('generateTag integration tests', () => {
         const apiMajor = await generateTag(
             { github, context },
             'api',
-            true, false, false, false
+            'major'
         );
         expect(apiMajor.tag).toBe('api/v3.0.0');
 
@@ -441,7 +430,7 @@ describe('generateTag integration tests', () => {
         const workerMinor = await generateTag(
             { github, context },
             'worker',
-            false, true, false, false
+            'minor'
         );
         expect(workerMinor.tag).toBe('worker/v1.2.0');
     });

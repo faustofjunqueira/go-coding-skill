@@ -9,13 +9,13 @@ on:
         required: true
         type: choice
         options:
-          - alpha
+          - namespace
           - beta
           - gamma
           - delta
           - epsilon
-      semver:
-        description: 'Tipo de versão (semver)'
+      bumpType:
+        description: 'Tipo de versão'
         required: true
         type: choice
         options:
@@ -51,10 +51,59 @@ on:
         type: string
         default: ''
 
+
 jobs:
+  generate-tag:
+    # runs-on: small-runner
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.set_output.outputs.VERSION }}
+      PREVIOUS_TAG: ${{ steps.set_output.outputs.PREVIOUS_TAG }}
+      HOTFIXES: ${{ steps.set_output.outputs.HOTFIXES }}
+      TAG_PRD_SEMVER: ${{ steps.set_output.outputs.TAG_PRD_SEMVER }}
+      TAG: ${{ steps.set_output.outputs.TAG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: find tag
+        id: find_tag
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            const script = require('./infra/gha/generate-tag.js')
+            return await script(
+              {core, context},
+              core.getInput('namespace'),
+              core.getInput('bumpType'),
+            )
+
+      - name: set-output
+        id: set_output
+        env:
+          RESULT: ${{ steps.find_tag.outputs.result }}
+        run: |
+          echo "PREVIOUS_TAG=$(echo $RESULT | jq -r '.previousTag')" >> $GITHUB_OUTPUT
+          echo "HOTFIXES=$(echo $RESULT | jq -r '.hotfixes')" >> $GITHUB_OUTPUT
+          echo "TAG_PRD_SEMVER=$(echo $RESULT | jq -r '.tagPRD')" >> $GITHUB_OUTPUT
+          echo "VERSION=$(echo $RESULT | jq -r '.version')" >> $GITHUB_OUTPUT
+          echo "TAG=$(echo $RESULT | jq -r '.tag')" >> $GITHUB_OUTPUT
+
+          # Debug
+          echo "$RESULT"
+          echo "PREVIOUS_TAG=$(echo "$RESULT" | jq -r '.previousTag')"
+          echo "HOTFIXES=$(echo "$RESULT" | jq -r '.hotfixes')"
+          echo "TAG_PRD_SEMVER=$(echo "$RESULT" | jq -r '.tagPRD')"
+          echo "VERSION=$(echo "$RESULT" | jq -r '.version')"
+          echo "TAG=$(echo "$RESULT" | jq -r '.tag')"
+
   release-notes:
-    runs-on: small-runner
-    # needs: [prepare-tag]
+    # runs-on: small-runner
+    runs-on: ubuntu-latest
+    needs: [generate-tag]
     steps:
       - uses: actions/checkout@v4
         with:

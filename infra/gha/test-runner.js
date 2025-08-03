@@ -75,7 +75,7 @@ runner.test('Generate first major version with no existing tags', async () => {
     const result = await generateTag(
         { github, context },
         'test-namespace',
-        true, false, false, false
+        'major'
     );
 
     runner.assertEqual(result.tag, 'test-namespace/v1.0.0');
@@ -98,7 +98,7 @@ runner.test('Generate next patch version with existing tags', async () => {
     const result = await generateTag(
         { github, context },
         'test-namespace',
-        false, false, true, false
+        'patch'
     );
 
     runner.assertEqual(result.tag, 'test-namespace/v1.2.1');
@@ -125,7 +125,7 @@ runner.test('Generate pre-release version', async () => {
     const result = await generateTag(
         { github, context },
         'test-namespace',
-        false, false, false, true
+        'rc'
     );
 
     runner.assertEqual(result.tag, 'test-namespace/v2.0.0-1');
@@ -152,7 +152,7 @@ runner.test('Filter by namespace correctly', async () => {
     const result = await generateTag(
         { github, context },
         'namespace-a',
-        false, true, false, false
+        'minor'
     );
 
     runner.assertEqual(result.tag, 'namespace-a/v1.2.0');
@@ -178,15 +178,14 @@ runner.test('Generate minor version with hotfixes detection', async () => {
     const result = await generateTag(
         { github, context },
         'test-namespace',
-        false, true, false, false // Minor bump
+        'minor' // Minor bump
     );
 
     runner.assertEqual(result.tag, 'test-namespace/v1.2.0');
     runner.assertEqual(result.hotfixes, "1.0.1,1.0.2,1.0.3"); // Deve encontrar 3 hotfixes como string
 });
 
-// Testes de validação
-runner.test('Validation: Should reject when no bump type is selected', async () => {
+runner.test('Validation: Should reject when no bump type is provided', async () => {
     const github = createMockGithub([]);
     const context = createMockContext();
 
@@ -194,15 +193,15 @@ runner.test('Validation: Should reject when no bump type is selected', async () 
         await generateTag(
             { github, context },
             'test-namespace',
-            false, false, false, false // Nenhum bump selecionado
+            null // Nenhum bump fornecido
         );
         throw new Error('Should have thrown validation error');
     } catch (error) {
-        runner.assertEqual(error.message.includes('At least one bump type must be selected'), true);
+        runner.assertEqual(error.message.includes('Bump type is required'), true);
     }
 });
 
-runner.test('Validation: Should reject when multiple bump types are selected', async () => {
+runner.test('Validation: Should reject invalid bump type', async () => {
     const github = createMockGithub([]);
     const context = createMockContext();
 
@@ -210,12 +209,12 @@ runner.test('Validation: Should reject when multiple bump types are selected', a
         await generateTag(
             { github, context },
             'test-namespace',
-            true, true, false, false // Major e minor selecionados
+            'invalid' // Tipo inválido
         );
         throw new Error('Should have thrown validation error');
     } catch (error) {
-        runner.assertEqual(error.message.includes('Only one bump type can be selected'), true);
-        runner.assertEqual(error.message.includes('major, minor'), true);
+        runner.assertEqual(error.message.includes('Invalid bump type'), true);
+        runner.assertEqual(error.message.includes('major, minor, patch, rc'), true);
     }
 });
 
@@ -232,7 +231,7 @@ runner.test('Handle pagination with many tags', async () => {
     const result = await generateTag(
         { github, context },
         'test-namespace',
-        false, false, true, false
+        'patch'
     );
 
     runner.assertEqual(result.tag, 'test-namespace/v1.0.150');
@@ -254,7 +253,7 @@ runner.test('Handle mixed tag formats (with and without v prefix)', async () => 
     const result = await generateTag(
         { github, context },
         'test-namespace',
-        false, false, true, false
+        'patch'
     );
 
     runner.assertEqual(result.tag, 'test-namespace/v1.2.1');

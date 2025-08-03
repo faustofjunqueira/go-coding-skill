@@ -1,13 +1,13 @@
 
-async function generateTag({github, context}, namespace, major, minor, patch, preRelease) {
+async function generateTag({github, context}, namespace, bumpType) {
     try {
-        // Validar que apenas um tipo de bump seja selecionado
-        validateSingleBumpType(major, minor, patch, preRelease);
+        // Validar que o tipo de bump seja válido
+        validateBumpType(bumpType);
         
         const allTags = await fetchAllTags(github, context);
         const namespaceTags = filterAndParseNamespaceTags(allTags, namespace);
-        const { currentVersion, previousVersion, previousTag, hotfixes } = findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preRelease);
-        const nextVersion = calculateNextVersion(currentVersion, major, minor, patch, preRelease);
+        const { currentVersion, previousVersion, previousTag, hotfixes } = findCurrentAndPreviousVersions(namespaceTags, bumpType);
+        const nextVersion = calculateNextVersion(currentVersion, bumpType);
         const { newTag, versionString } = formatNewTag(namespace, nextVersion);
         const tagPRD = !isReleaseCandidate(nextVersion);
         
@@ -27,22 +27,15 @@ async function generateTag({github, context}, namespace, major, minor, patch, pr
     }
 }
 
-function validateSingleBumpType(major, minor, patch, preRelease) {
-    const bumpTypes = [major, minor, patch, preRelease];
-    const selectedCount = bumpTypes.filter(Boolean).length;
+function validateBumpType(bumpType) {
+    const validBumpTypes = ['major', 'minor', 'patch', 'rc'];
     
-    if (selectedCount === 0) {
-        throw new Error('At least one bump type must be selected (major, minor, patch, or preRelease)');
+    if (!bumpType) {
+        throw new Error('Bump type is required. Valid options: major, minor, patch, rc');
     }
     
-    if (selectedCount > 1) {
-        const selectedTypes = [];
-        if (major) selectedTypes.push('major');
-        if (minor) selectedTypes.push('minor');
-        if (patch) selectedTypes.push('patch');
-        if (preRelease) selectedTypes.push('preRelease');
-        
-        throw new Error(`Only one bump type can be selected at a time. Selected: ${selectedTypes.join(', ')}`);
+    if (!validBumpTypes.includes(bumpType)) {
+        throw new Error(`Invalid bump type: ${bumpType}. Valid options: ${validBumpTypes.join(', ')}`);
     }
 }
 
@@ -84,7 +77,7 @@ function filterAndParseNamespaceTags(allTags, namespace) {
         .sort((a, b) => compareVersions(a, b));
 }
 
-function findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preRelease) {
+function findCurrentAndPreviousVersions(namespaceTags, bumpType) {
     let currentVersion = { major: 0, minor: 0, patch: 0, preRelease: null };
     let previousVersion = null;
     let previousTag = null;
@@ -92,10 +85,10 @@ function findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preR
     
     if (namespaceTags.length > 0) {
         currentVersion = namespaceTags[namespaceTags.length - 1];
-        previousVersion = findPreviousVersion(namespaceTags, currentVersion, major, minor, patch, preRelease);
+        previousVersion = findPreviousVersion(namespaceTags, currentVersion, bumpType);
         
         // Para minor bumps, encontrar hotfixes entre a versão minor anterior e atual
-        if (minor) {
+        if (bumpType === 'minor') {
             hotfixes = findHotfixesBetweenMinorVersions(namespaceTags, currentVersion);
         }
         
@@ -107,14 +100,14 @@ function findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preR
     return { currentVersion, previousVersion, previousTag, hotfixes };
 }
 
-function findPreviousVersion(namespaceTags, currentVersion, major, minor, patch, preRelease) {
-    if (major) {
+function findPreviousVersion(namespaceTags, currentVersion, bumpType) {
+    if (bumpType === 'major') {
         return findPreviousMajorVersion(namespaceTags, currentVersion);
-    } else if (minor) {
+    } else if (bumpType === 'minor') {
         return findPreviousMinorVersion(namespaceTags, currentVersion);
-    } else if (patch) {
+    } else if (bumpType === 'patch') {
         return findPreviousPatchVersion(namespaceTags, currentVersion);
-    } else if (preRelease) {
+    } else if (bumpType === 'rc') {
         return findPreviousPreReleaseVersion(namespaceTags, currentVersion);
     }
     return null;
@@ -189,25 +182,25 @@ function findHotfixesBetweenMinorVersions(namespaceTags, currentVersion) {
     return hotfixes;
 }
 
-function calculateNextVersion(currentVersion, major, minor, patch, preRelease) {
+function calculateNextVersion(currentVersion, bumpType) {
     let nextVersion = { ...currentVersion };
     
-    if (major) {
+    if (bumpType === 'major') {
         nextVersion.major = currentVersion.major + 1;
         nextVersion.minor = 0;
         nextVersion.patch = 0;
         nextVersion.preRelease = null;
-    } else if (minor) {
+    } else if (bumpType === 'minor') {
         nextVersion.minor = currentVersion.minor + 1;
         nextVersion.patch = 0;
         nextVersion.preRelease = null;
-    } else if (patch) {
+    } else if (bumpType === 'patch') {
         nextVersion.patch = currentVersion.patch + 1;
         nextVersion.preRelease = null;
     }
 
-    // Handle pre-release
-    if (preRelease) {
+    // Handle pre-release (rc)
+    if (bumpType === 'rc') {
         if (currentVersion.preRelease !== null) {
             // Increment existing pre-release
             nextVersion.preRelease = currentVersion.preRelease + 1;
