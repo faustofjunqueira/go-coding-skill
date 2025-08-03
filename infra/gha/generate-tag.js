@@ -1,11 +1,15 @@
 
 async function generateTag({github, context}, namespace, major, minor, patch, preRelease) {
     try {
+        // Validar que apenas um tipo de bump seja selecionado
+        validateSingleBumpType(major, minor, patch, preRelease);
+        
         const allTags = await fetchAllTags(github, context);
         const namespaceTags = filterAndParseNamespaceTags(allTags, namespace);
-        const { currentVersion, previousVersion, previousTag } = findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preRelease);
+        const { currentVersion, previousVersion, previousTag, hotfixes } = findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preRelease);
         const nextVersion = calculateNextVersion(currentVersion, major, minor, patch, preRelease);
         const { newTag, versionString } = formatNewTag(namespace, nextVersion);
+        const tagPRD = !isReleaseCandidate(nextVersion);
         
         return {
             tag: newTag,
@@ -13,11 +17,32 @@ async function generateTag({github, context}, namespace, major, minor, patch, pr
             current: currentVersion,
             next: nextVersion,
             previous: previousVersion,
-            previousTag: previousTag
+            previousTag: previousTag,
+            hotfixes: hotfixes,
+            tagPRD: tagPRD
         };
 
     } catch (error) {
         throw new Error(`Failed to generate tag: ${error.message}`);
+    }
+}
+
+function validateSingleBumpType(major, minor, patch, preRelease) {
+    const bumpTypes = [major, minor, patch, preRelease];
+    const selectedCount = bumpTypes.filter(Boolean).length;
+    
+    if (selectedCount === 0) {
+        throw new Error('At least one bump type must be selected (major, minor, patch, or preRelease)');
+    }
+    
+    if (selectedCount > 1) {
+        const selectedTypes = [];
+        if (major) selectedTypes.push('major');
+        if (minor) selectedTypes.push('minor');
+        if (patch) selectedTypes.push('patch');
+        if (preRelease) selectedTypes.push('preRelease');
+        
+        throw new Error(`Only one bump type can be selected at a time. Selected: ${selectedTypes.join(', ')}`);
     }
 }
 
@@ -63,17 +88,23 @@ function findCurrentAndPreviousVersions(namespaceTags, major, minor, patch, preR
     let currentVersion = { major: 0, minor: 0, patch: 0, preRelease: null };
     let previousVersion = null;
     let previousTag = null;
+    let hotfixes = "";
     
     if (namespaceTags.length > 0) {
         currentVersion = namespaceTags[namespaceTags.length - 1];
         previousVersion = findPreviousVersion(namespaceTags, currentVersion, major, minor, patch, preRelease);
+        
+        // Para minor bumps, encontrar hotfixes entre a versão minor anterior e atual
+        if (minor) {
+            hotfixes = findHotfixesBetweenMinorVersions(namespaceTags, currentVersion);
+        }
         
         if (previousVersion) {
             previousTag = previousVersion.name;
         }
     }
     
-    return { currentVersion, previousVersion, previousTag };
+    return { currentVersion, previousVersion, previousTag, hotfixes };
 }
 
 function findPreviousVersion(namespaceTags, currentVersion, major, minor, patch, preRelease) {
@@ -130,6 +161,32 @@ function findPreviousPreReleaseVersion(namespaceTags, currentVersion) {
             .filter(tag => tag.preRelease === null)
             .slice(-2, -1)[0]; // Get second to last stable version
     }
+}
+
+function findHotfixesBetweenMinorVersions(namespaceTags, currentVersion) {
+    // Encontrar a versão minor anterior (mesmo major, minor - 1)
+    const previousMinorVersion = namespaceTags
+        .filter(tag => tag.major === currentVersion.major && tag.minor === currentVersion.minor - 1)
+        .find(tag => tag.patch === 0 && tag.preRelease === null); // Versão base da minor anterior (x.y.0)
+    
+    if (!previousMinorVersion) {
+        return ""; // Não há versão minor anterior
+    }
+    
+    // Encontrar todos os patches (hotfixes) lançados após a versão base da minor anterior
+    // até antes da versão minor atual
+    const hotfixes = namespaceTags
+        .filter(tag => {
+            // Mesmo major.minor da versão anterior, mas com patch > 0
+            return tag.major === previousMinorVersion.major && 
+                   tag.minor === previousMinorVersion.minor && 
+                   tag.patch > 0 && 
+                   tag.preRelease === null; // Apenas versões estáveis
+        })
+        .map(tag => tag.version) // Apenas a string da versão
+        .join(","); // Juntar com vírgulas
+    
+    return hotfixes;
 }
 
 function calculateNextVersion(currentVersion, major, minor, patch, preRelease) {
@@ -206,6 +263,11 @@ function compareVersions(a, b) {
     if (b.preRelease === null) return -1; // Pre-release is lower than release
     
     return a.preRelease - b.preRelease;
+}
+
+function isReleaseCandidate(version) {
+    // Uma versão é considerada RC (Release Candidate) se tem preRelease (ex: v1.0.0-0, v2.1.0-1)
+    return version.preRelease !== null;
 }
 
 module.exports = { generateTag };

@@ -47,7 +47,9 @@ describe('generateTag', () => {
                 current: { major: 0, minor: 0, patch: 0, preRelease: null },
                 next: { major: 1, minor: 0, patch: 0, preRelease: null },
                 previous: null,
-                previousTag: null
+                previousTag: null,
+                hotfixes: "",
+                tagPRD: true
             });
         });
 
@@ -156,6 +158,58 @@ describe('generateTag', () => {
             expect(result.version).toBe('2.1.0');
             expect(result.current).toEqual({ major: 2, minor: 0, patch: 0, preRelease: null });
             expect(result.next).toEqual({ major: 2, minor: 1, patch: 0, preRelease: null });
+            expect(result.hotfixes).toEqual(""); // No hotfixes in this scenario
+        });
+
+        it('should detect hotfixes when generating minor version', async () => {
+            const tagsWithHotfixes = [
+                { name: 'test-namespace/v1.0.0' },
+                { name: 'test-namespace/v1.1.0' },
+                { name: 'test-namespace/v1.1.1' }, // Hotfix 1
+                { name: 'test-namespace/v1.1.2' }, // Hotfix 2
+                { name: 'test-namespace/v1.1.3' }, // Hotfix 3
+                { name: 'test-namespace/v1.2.0' }  // Current version
+            ];
+
+            const github = createMockGithub(tagsWithHotfixes);
+            const context = createMockContext();
+
+            const result = await generateTag(
+                { github, context },
+                'test-namespace',
+                false, true, false, false // Minor bump
+            );
+
+            expect(result.tag).toBe('test-namespace/v1.3.0');
+            expect(result.hotfixes).toBe("1.1.1, 1.1.2, 1.1.3");
+        });
+
+        it('should not include hotfixes for non-minor bumps', async () => {
+            const tagsWithHotfixes = [
+                { name: 'test-namespace/v1.0.0' },
+                { name: 'test-namespace/v1.0.1' },
+                { name: 'test-namespace/v1.0.2' },
+                { name: 'test-namespace/v1.1.0' }
+            ];
+
+            const github = createMockGithub(tagsWithHotfixes);
+            const context = createMockContext();
+
+            // Test patch bump
+            const patchResult = await generateTag(
+                { github, context },
+                'test-namespace',
+                false, false, true, false
+            );
+            expect(patchResult.hotfixes).toEqual("");
+
+            // Test major bump
+            const majorResult = await generateTag(
+                { github, context },
+                'test-namespace',
+                true, false, false, false
+            );
+            expect(majorResult.hotfixes).toEqual("");
         });
 
         it('should generate next patch version', async () => {
@@ -298,6 +352,39 @@ describe('generateTag', () => {
                 'test-namespace',
                 true, false, false, false
             )).rejects.toThrow('Failed to generate tag: API Error');
+        });
+
+        it('should reject when no bump type is selected', async () => {
+            const github = createMockGithub([]);
+            const context = createMockContext();
+
+            await expect(generateTag(
+                { github, context },
+                'test-namespace',
+                false, false, false, false
+            )).rejects.toThrow('At least one bump type must be selected');
+        });
+
+        it('should reject when multiple bump types are selected', async () => {
+            const github = createMockGithub([]);
+            const context = createMockContext();
+
+            await expect(generateTag(
+                { github, context },
+                'test-namespace',
+                true, true, false, false
+            )).rejects.toThrow('Only one bump type can be selected at a time. Selected: major, minor');
+        });
+
+        it('should reject when all bump types are selected', async () => {
+            const github = createMockGithub([]);
+            const context = createMockContext();
+
+            await expect(generateTag(
+                { github, context },
+                'test-namespace',
+                true, true, true, true
+            )).rejects.toThrow('Only one bump type can be selected at a time. Selected: major, minor, patch, preRelease');
         });
     });
 

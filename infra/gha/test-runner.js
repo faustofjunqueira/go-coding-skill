@@ -82,6 +82,7 @@ runner.test('Generate first major version with no existing tags', async () => {
     runner.assertEqual(result.version, '1.0.0');
     runner.assertEqual(result.current, { major: 0, minor: 0, patch: 0, preRelease: null });
     runner.assertEqual(result.next, { major: 1, minor: 0, patch: 0, preRelease: null });
+    runner.assertEqual(result.tagPRD, true); // Não é RC, então é PRD
 });
 
 runner.test('Generate next patch version with existing tags', async () => {
@@ -108,6 +109,8 @@ runner.test('Generate next patch version with existing tags', async () => {
     runner.assertEqual(result.next.major, 1);
     runner.assertEqual(result.next.minor, 2);
     runner.assertEqual(result.next.patch, 1);
+    runner.assertEqual(result.hotfixes, ""); // Não é minor bump, então não há hotfixes
+    runner.assertEqual(result.tagPRD, true); // Versão estável, não é RC
 });
 
 runner.test('Generate pre-release version', async () => {
@@ -132,6 +135,7 @@ runner.test('Generate pre-release version', async () => {
     runner.assertEqual(result.current.patch, 0);
     runner.assertEqual(result.current.preRelease, 0);
     runner.assertEqual(result.next.preRelease, 1);
+    runner.assertEqual(result.tagPRD, false); // É RC, então tagPRD é false
 });
 
 runner.test('Filter by namespace correctly', async () => {
@@ -155,6 +159,64 @@ runner.test('Filter by namespace correctly', async () => {
     runner.assertEqual(result.current.major, 1);
     runner.assertEqual(result.current.minor, 1);
     runner.assertEqual(result.current.patch, 0);
+    runner.assertEqual(result.hotfixes, ""); // Não há hotfixes pois não há patches na versão 1.0.x
+});
+
+// Novo teste para verificar hotfixes em minor bumps
+runner.test('Generate minor version with hotfixes detection', async () => {
+    const tagsWithHotfixes = [
+        { name: 'test-namespace/v1.0.0' },
+        { name: 'test-namespace/v1.0.1' }, // Hotfix 1
+        { name: 'test-namespace/v1.0.2' }, // Hotfix 2
+        { name: 'test-namespace/v1.0.3' }, // Hotfix 3
+        { name: 'test-namespace/v1.1.0' }  // Current version
+    ];
+
+    const github = createMockGithub(tagsWithHotfixes);
+    const context = createMockContext();
+
+    const result = await generateTag(
+        { github, context },
+        'test-namespace',
+        false, true, false, false // Minor bump
+    );
+
+    runner.assertEqual(result.tag, 'test-namespace/v1.2.0');
+    runner.assertEqual(result.hotfixes, "1.0.1,1.0.2,1.0.3"); // Deve encontrar 3 hotfixes como string
+});
+
+// Testes de validação
+runner.test('Validation: Should reject when no bump type is selected', async () => {
+    const github = createMockGithub([]);
+    const context = createMockContext();
+
+    try {
+        await generateTag(
+            { github, context },
+            'test-namespace',
+            false, false, false, false // Nenhum bump selecionado
+        );
+        throw new Error('Should have thrown validation error');
+    } catch (error) {
+        runner.assertEqual(error.message.includes('At least one bump type must be selected'), true);
+    }
+});
+
+runner.test('Validation: Should reject when multiple bump types are selected', async () => {
+    const github = createMockGithub([]);
+    const context = createMockContext();
+
+    try {
+        await generateTag(
+            { github, context },
+            'test-namespace',
+            true, true, false, false // Major e minor selecionados
+        );
+        throw new Error('Should have thrown validation error');
+    } catch (error) {
+        runner.assertEqual(error.message.includes('Only one bump type can be selected'), true);
+        runner.assertEqual(error.message.includes('major, minor'), true);
+    }
 });
 
 runner.test('Handle pagination with many tags', async () => {

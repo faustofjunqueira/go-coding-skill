@@ -70,5 +70,11 @@ jobs:
               {github, context, core, glob},
               "${{ needs.prepare-tag.outputs.PREVIOUS_TAG }}",
               "${{ github.ref_name }}",
+              "${{ inputs.descricao_da_mudanca }}",
+              "${{ inputs.objetivo_da_mudanca }}",
+              "${{ inputs.plano_de_rollback }}",
+              "${{ inputs.plano_de_teste }}",
+              "${{ inputs.link_do_card_no_jira }}",
+              "${{ inputs.id_do_incidente_opsgenie }}",
               "${{ needs.prepare-tag.outputs.HOTFIXES }}",
             )
