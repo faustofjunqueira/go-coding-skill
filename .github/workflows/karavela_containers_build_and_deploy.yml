@@ -1,5 +1,5 @@
 name: build and deploy
-run-name: ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+run-name: ${{ inputs.namespace }} ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -41,12 +41,12 @@ on:
         required: true
         type: string
       link_do_card_no_jira:
-        description: '[opcional] Link do card no Jira'
+        description: 'opcional] Link do card no Jira'
         required: false
         type: string
         default: ''
       id_do_incidente_opsgenie:
-        description: '[opcional] ID do incidente no Opsgenie'
+        description: 'opcional] ID do incidente no Opsgenie'
         required: false
         type: string
         default: ''
