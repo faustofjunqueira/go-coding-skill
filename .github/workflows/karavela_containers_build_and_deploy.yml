@@ -41,12 +41,12 @@ on:
         required: true
         type: string
       link_do_card_no_jira:
-        description: 'Link do card no Jira (opcional)'
+        description: '[opcional] Link do card no Jira'
         required: false
         type: string
         default: ''
       id_do_incidente_opsgenie:
-        description: 'ID do incidente no Opsgenie (opcional)'
+        description: '[opcional] ID do incidente no Opsgenie'
         required: false
         type: string
         default: ''

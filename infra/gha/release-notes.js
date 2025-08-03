@@ -1,6 +1,19 @@
 const { execSync } = require("child_process");
 
 const templateMD = `
+<!-- auditing-block start -->
+## Repositório Auditado
+
+\`\`\`yml
+descricao_da_mudanca: $$DESCRICAO$$ 
+objetivo_da_mudanca: $$OBJETIVO$$
+plano_de_rollback: $$ROLLBACK$$
+plano_de_teste: $$TESTE$$
+[opcional] link_do_card_no_jira: $$LINK_JIRA$$
+[opcional] id_do_incidente_opsgenie: $$ID_OPSGENIE$$
+\`\`\`
+<!-- auditing-block end -->
+
 ## :anchor: Changelog for $$VERSION$$
 
 $$CATEGORIES$$
@@ -180,7 +193,7 @@ function categorizeLogs(logs) {
   }
 }
 
-function writeTemplate(repoName, previousTag, tag, categorizeLogs, hotfixes) {
+function writeTemplate(repoName, previousTag, tag, categorizeLogs, hotfixes, description = "", objective = "", rollbackPlan = "", testPlan = "", jiraLink = "", opsgenieId = "") {
   try {
     const categories = Object.entries(categorizeLogs)
       .map(([categoryKey, logs]) => {
@@ -232,6 +245,12 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs, hotfixes) {
     }
 
     return templateMD
+      .replaceAll("$$DESCRICAO$$", description)
+      .replaceAll("$$OBJETIVO$$", objective)
+      .replaceAll("$$ROLLBACK$$", rollbackPlan)
+      .replaceAll("$$TESTE$$", testPlan)
+      .replaceAll("$$LINK_JIRA$$", jiraLink)
+      .replaceAll("$$ID_OPSGENIE$$", opsgenieId)
       .replaceAll("$$FOOTER$$", footer)
       .replaceAll("$$VERSION$$", tag)
       .replaceAll("$$CATEGORIES$$", categories.join("\n"))
@@ -273,12 +292,12 @@ async function sendReleaseNotes(github, context, core, releaseNotes, tag) {
     core.notice('Release created successfully: ' + response.data.html_url);
 }
 
-async function createsReleaseNotes({ github, context, core }, previousTag, tag, hotfixes) {
+async function createsReleaseNotes({ github, context, core }, previousTag, tag, description, objective, rollbackPlan, testPlan, jiraLink, opsgenieId, hotfixes) {
   try {
     const [namespace] = tag.split('/')
     const repoName = [context.repo.owner, context.repo.repo].join("/");
     const logs = categorizeLogs(loadCommitLogs(repoName, namespace, previousTag, tag));
-    const releaseNotes = writeTemplate(repoName, previousTag, tag, logs, hotfixes);
+    const releaseNotes = writeTemplate(repoName, previousTag, tag, logs, hotfixes, description, objective, rollbackPlan, testPlan, jiraLink, opsgenieId);
     await sendReleaseNotes(github, context, core, releaseNotes, tag);
     // escreve a release no summary
     core.summary.addRaw(releaseNotes).write();
@@ -371,8 +390,13 @@ module.exports = createsReleaseNotes;
 //             },
 //         },
 //     },
-//     "card-webhook",
 //     "card-webhook/v1.0.0",
 //     "card-webhook/v1.0.18",
-//     "card-webhook/v1.0.1,card-webhook/v1.0.2,card-webhook/v1.0.3,card-webhook/v1.0.4,card-webhook/v1.0.5,card-webhook/v1.0.6,card-webhook/v1.0.7,card-webhook/v1.0.8,card-webhook/v1.0.10,card-webhook/v1.0.11,card-webhook/v1.0.12,card-webhook/v1.0.13,card-webhook/v1.0.14,card-webhook/v1.0.15,card-webhook/v1.0.16,card-webhook/v1.0.17,card-webhook/v1.0.18"
-// );
+//     "Description for card-webhook",
+//     "Objective for card-webhook",
+//     "Rollback plan for card-webhook",
+//     "Test plan for card-webhook",
+//     "https://jira.example.com/browse/CARD-123",
+//     "OPS-456",  
+//     "card-webhook/v1.0.1,card-webhook/v1.0.2,card-webhook/v1.0.3,card-webhook/v1.0.4,card-webhook/v1.0.5,card-webhook/v1.0.6,card-webhook/v1.0.7,card-webhook/v1.0.8,card-webhook/v1.0.10,card-webhook/v1.0.11,card-webhook/v1.0.12,card-webhook/v1.0.13,card-webhook/v1.0.14,card-webhook/v1.0.15,card-webhook/v1.0.16,card-webhook/v1.0.17,card-webhook/v1.0.18",
+//   );
