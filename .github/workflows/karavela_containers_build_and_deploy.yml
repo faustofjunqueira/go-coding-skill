@@ -1,5 +1,5 @@
 name: build and deploy
-run-name: ${{ inputs.namespace }} ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+run-name: ${{ inputs.namespace }} ${{jobs.generate-tag.outputs.VERSION}} ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -51,10 +51,8 @@ on:
         type: string
         default: ''
 
-
 jobs:
   generate-tag:
-    # runs-on: small-runner
     runs-on: ubuntu-latest
     outputs:
       VERSION: ${{ steps.set_output.outputs.VERSION }}
