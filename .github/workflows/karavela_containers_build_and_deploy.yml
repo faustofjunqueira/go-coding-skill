@@ -73,7 +73,7 @@ jobs:
           result-encoding: string
           script: |
             const script = require('./infra/gha/generate-tag.js')
-            return await script(
+            return await script.generateTag(
               {core, context},
               core.getInput('namespace'),
               core.getInput('bumpType'),
