@@ -1,0 +1,68 @@
+name: build and deploy
+run-name: ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      namespace:
+        description: 'Namespace'
+        required: true
+        type: string
+      semver:
+        description: 'Tipo de versão (semver)'
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+          - rc
+        default: minor
+      descricao_da_mudanca:
+        description: 'Descrição detalhada da mudança que será realizada'
+        required: true
+        type: string
+      objetivo_da_mudanca:
+        description: 'Objetivo e motivo da mudança'
+        required: true
+        type: string
+      plano_de_rollback:
+        description: 'Plano de rollback em caso de problemas'
+        required: true
+        type: string
+      plano_de_teste:
+        description: 'Plano de testes para validar a mudança'
+        required: true
+        type: string
+      link_do_card_no_jira:
+        description: 'Link do card no Jira (opcional)'
+        required: false
+        type: string
+        default: ''
+      id_do_incidente_opsgenie:
+        description: 'ID do incidente no Opsgenie (opcional)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  release-notes:
+    runs-on: small-runner
+    # needs: [prepare-tag]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/github-script@v7
+        name: create release notes
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          script: |
+            const script = require('./infra/gha/release-notes.js')
+            await script(
+              {github, context, core, glob},
+              "${{ needs.prepare-tag.outputs.PREVIOUS_TAG }}",
+              "${{ github.ref_name }}",
+              "${{ needs.prepare-tag.outputs.HOTFIXES }}",
+            )

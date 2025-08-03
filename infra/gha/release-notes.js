@@ -15,15 +15,17 @@ const categoryTemplate = `
 $$LOGS$$
 `;
 
-const GLOBAL_SCOPE = "stncard-go";
-const SHA_SIZE = 7;
+const hotfixSectionTemplate = `
+### :fire: Hotfixes
 
-const TAG_TYPE = {
-  MAJOR: 0b1000,
-  MINOR: 0b0100,
-  PATCH: 0b0010,
-  PRE_RELEASE: 0b0001,
-};
+$$HOTFIXES$$
+
+---
+`
+
+const hotfixLineTemplate = `- [$$TAG$$]($$RELEASE_LINK$$)`
+
+const GLOBAL_SCOPE = "stncard-go";
 
 const LOG_CATEGORY = {
   NONE: { key: "NONE", terms: [], title: "Others", icon: ":stop_sign:" },
@@ -81,128 +83,26 @@ const LOG_CATEGORY = {
 
 function execCommand(command) {
   try {
+    console.log(command)
     return execSync(command, { encoding: "utf-8" }).trim();
   } catch (error) {
     throw new Error(`Failed to execute command: ${error.message}`);
   }
 }
 
-function completeTagName(tag) {
-  return `${tag.namespace}/${tag.version}`;
-}
-
-function parseRefName(refName) {
+function loadCommitLogs(repoName, namespace, previousTag, tag) {
   try {
-    const [namespace, version] = refName.split("/");
-    const [_, semver] = version.split("v");
-    const [major, minor, patchWithPreRelease] = semver.split(".");
-    const [patch, preRelease] = patchWithPreRelease.split("-");
-
-    let type;
-    if (preRelease) {
-      type = TAG_TYPE.PRE_RELEASE;
-    } else if (minor === "0" && patch === "0") {
-      type = TAG_TYPE.MAJOR;
-    } else if (patch === "0") {
-      type = TAG_TYPE.MINOR;
-    } else {
-      type = TAG_TYPE.PATCH;
+    if (previousTag == null) {
+        return [];
     }
 
-    return {
-      namespace,
-      version,
-      SHA: getSHA(refName),
-      semver: { semver, type, major, minor, patch, preRelease },
-    };
-  } catch (error) {
-    throw new Error(`Failed to parse refName: ${error.message}`);
-  }
-}
-
-function checkIfTagIsSemver(refName) {
-  try {
-    const semverRegex =
-      /^([a-zA-Z0-9-_]+)\/v(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?$/;
-    return semverRegex.test(refName);
-  } catch (error) {
-    throw new Error(`Failed to check if tag is semver: ${error.message}`);
-  }
-}
-
-function getSHA(refName) {
-  try {
-    return execCommand(`git rev-parse --short=${SHA_SIZE} ${refName}`);
-  } catch (error) {
-    throw new Error(`Failed to fetch SHA: ${error.message}`);
-  }
-}
-
-function loadTagLists(tag) {
-  try {
-    const tagPrefix = tag.namespace + "/v*";
-    const tags = execCommand(`git tag -l "${tagPrefix}"`, {
-      encoding: "utf-8",
-    }).split("\n");
-
-    if (tags.length === 0 || tags[0] === "") {
-      return [];
-    }
-
-    return tags
-      .map(parseRefName)
-      .filter((t) => t.namespace === tag.namespace) // tem que ser do mesmo namespace
-      .filter((t) => t.version !== tag.version); // remove a propria tag em questao;
-  } catch (error) {
-    throw new Error(`Failed to fetch tags: ${error.message}`);
-  }
-}
-
-function compareTags(tagX, tagY) {
-  if (tagX.semver.major !== tagY.semver.major) {
-    return tagY.semver.major - tagX.semver.major;
-  }
-  if (tagX.semver.minor !== tagY.semver.minor) {
-    return tagY.semver.minor - tagX.semver.minor;
-  }
-  if (tagY.semver.patch !== tagX.semver.patch) {
-    return tagY.semver.patch - tagX.semver.patch;
-  }
-  return tagY.semver.preRelease - tagX.semver.preRelease;
-}
-
-function filterTagByType(typeCompator) {
-  return (tag) => !!(tag.semver.type & typeCompator);
-}
-
-function findPreviousTag(listTags, tag) {
-  try {
-    let filterBy = TAG_TYPE.MAJOR | TAG_TYPE.MINOR;
-    if (tag.semver.type === TAG_TYPE.PATCH) {
-      filterBy = TAG_TYPE.PATCH;
-    }
-
-    const semverTags = listTags
-      .filter(filterTagByType(filterBy)) // filtra pelo tipo de tag (major, minor, patch, pre-release)
-      .sort(compareTags); // ordena pela versao mais recente
-
-    return semverTags.length > 0 ? semverTags[0] : null;
-  } catch (error) {
-    throw new Error(`Failed to find previous tag: ${error.message}`);
-  }
-}
-
-function loadCommitLogs(repoName, previousTag, tag) {
-  try {
     const prCommitRegex = /^([a-zA-Z]+)\(([a-zA-Z-]+)\): (.+)\(#([0-9]+)\)$/;
 
     const commitLogs = execCommand(
-      `git log ${completeTagName(previousTag)}..${completeTagName(
-        tag
-      )} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${
-        tag.namespace
-      })\)" -i`
+      `git log ${previousTag}..${tag} --pretty=format:"%s;%h;%an" | grep -E "\((${GLOBAL_SCOPE}|${namespace})\)" -i`
     ).split("\n");
+
+    console.log("Commit logs:\n", commitLogs.join("\n"))
 
     const logs = commitLogs.map((l) => {
       const [fullMessage, sha, author] = l.split(";");
@@ -226,7 +126,7 @@ function loadCommitLogs(repoName, previousTag, tag) {
 
       let category = LOG_CATEGORY.NONE;
 
-      for (const [key, cat] of Object.entries(LOG_CATEGORY)) {
+      for (const [, cat] of Object.entries(LOG_CATEGORY)) {
         if (
           cat.terms.some((term) => fullMessage.toLowerCase().startsWith(term))
         ) {
@@ -280,7 +180,7 @@ function categorizeLogs(logs) {
   }
 }
 
-function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
+function writeTemplate(repoName, previousTag, tag, categorizeLogs, hotfixes) {
   try {
     const categories = Object.entries(categorizeLogs)
       .map(([categoryKey, logs]) => {
@@ -316,14 +216,24 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
 
     let footer = "";
     if (previousTag) {
-      footer = `:monocle_face: Compare: [${completeTagName(previousTag)} .. ${completeTagName(tag)}](https://github.com/${repoName}/compare/completeTagName(previousTag)..${completeTagName(tag)})`
+      footer = `:monocle_face: Compare: [${previousTag} .. ${tag}](https://github.com/${repoName}/compare/${previousTag}..${tag})`
     } else {
       footer = `:confetti_ball: :sparkles: First release! :sparkles: :confetti_ball:`;
     }
 
+    if (hotfixes) {
+        const hotfixesTemplate = hotfixes.split(",").map((tag) => {
+            return hotfixLineTemplate
+                .replaceAll("$$TAG$$", tag)
+                .replaceAll("$$RELEASE_LINK$$", `https://github.com/${repoName}/releases/tag/${tag}`);
+        }).join("\n");
+
+        footer = hotfixSectionTemplate.replaceAll("$$HOTFIXES$$", hotfixesTemplate) + footer;
+    }
+
     return templateMD
       .replaceAll("$$FOOTER$$", footer)
-      .replaceAll("$$VERSION$$", completeTagName(tag))
+      .replaceAll("$$VERSION$$", tag)
       .replaceAll("$$CATEGORIES$$", categories.join("\n"))
 
   } catch (error) {
@@ -331,28 +241,7 @@ function writeTemplate(repoName, previousTag, tag, categorizeLogs) {
   }
 }
 
-async function createsReleaseNotes({ github, context, core }) {
-  try {
-    const ref = context.ref;
-    const repoName = [context.repo.owner, context.repo.repo].join("/");
-    const [, type, ...refsName] = ref.split("/");
-    const refName = refsName.join("/");
-
-    if (type == "heads") {
-      throw new Error("This action only works with tags");
-    }
-
-    if (!checkIfTagIsSemver(refName)) {
-      throw new Error("ref is not a valid semver tag");
-    }
-
-    const tag = parseRefName(refName);
-    const listTags = loadTagLists(tag);
-    const previousTag = findPreviousTag(listTags, tag);
-    const logs = categorizeLogs(loadCommitLogs(repoName, previousTag, tag));
-
-    const releaseNotes = writeTemplate(repoName, previousTag, tag, logs);
-
+async function sendReleaseNotes(github, context, core, releaseNotes, tag) {
     // Verifica se a release já existe
     const existingReleases = await github.rest.repos.listReleases({
       owner: context.repo.owner,
@@ -360,11 +249,11 @@ async function createsReleaseNotes({ github, context, core }) {
     });
 
     const releaseExists = existingReleases.data.some(
-      (release) => release.tag_name === completeTagName(tag)
+      r => r.tag_name === tag
     );
 
     if (releaseExists) {
-      core.notice(`Release for tag ${completeTagName(tag)} already exists.`);
+      core.notice(`Release for tag ${tag} already exists.`);
       return;
     }
 
@@ -372,18 +261,25 @@ async function createsReleaseNotes({ github, context, core }) {
     const response = await github.rest.repos.createRelease({
       owner: context.repo.owner,
       repo: context.repo.repo,
-      tag_name: completeTagName(tag),
-      name: `${completeTagName(tag)}`,
+      tag_name: tag,
+      name: `${tag}`,
       body: releaseNotes,
     });
-
-    console.log(response);
 
     if (response.status != 201) {
       throw new Error(`Failed to create release: ${JSON.stringify(response)}`);
     }
 
     core.notice('Release created successfully: ' + response.data.html_url);
+}
+
+async function createsReleaseNotes({ github, context, core }, previousTag, tag, hotfixes) {
+  try {
+    const [namespace] = tag.split('/')
+    const repoName = [context.repo.owner, context.repo.repo].join("/");
+    const logs = categorizeLogs(loadCommitLogs(repoName, namespace, previousTag, tag));
+    const releaseNotes = writeTemplate(repoName, previousTag, tag, logs, hotfixes);
+    await sendReleaseNotes(github, context, core, releaseNotes, tag);
     // escreve a release no summary
     core.summary.addRaw(releaseNotes).write();
 
@@ -396,3 +292,87 @@ async function createsReleaseNotes({ github, context, core }) {
 }
 
 module.exports = createsReleaseNotes;
+
+// createsReleaseNotes(
+//     {
+//         core: {
+//         debug: console.log,
+//         notice: console.log,
+//         exportVariable: console.log,
+//         setFailed: console.error,
+//         summary: {
+//             addRaw: (param) => {
+//                 return { write: () => console.log(param)  };
+//             },
+//             write: console.log,
+//         },
+//         },
+//         github: {
+//             rest: {
+//                 repos: {
+//                     listReleases: () => ({
+//                         data: [
+//                         // { tag_name: "card-notification/v0.0.0" },
+//                         // { tag_name: "card-notification/v0.0.1" },
+//                         ],
+//                     }),
+//                     createRelease: () => ({
+//                         status: 201,
+//                         data: { html_url: "qualquerurl"},
+//                     }),
+//                 },
+//             },
+//         },
+//         context: {
+//             repo: {
+//                 owner: "stone-payments",
+//                 repo: "stncard-go",
+//             },
+//         },
+//     },
+//     null,
+//     "card-notification/v0.0.0",
+//     ""
+// );
+// createsReleaseNotes(
+//     {
+//         core: {
+//         debug: console.log,
+//         notice: console.log,
+//         exportVariable: console.log,
+//         setFailed: console.error,
+//         summary: {
+//             addRaw: (param) => {
+//                 return { write: () => console.log(param)  };
+//             },
+//             write: console.log,
+//         },
+//         },
+//         github: {
+//             rest: {
+//                 repos: {
+//                     listReleases: () => ({
+//                         data: [
+//                         { tag_name: "card-webhook/v0.0.0" },
+//                         { tag_name: "card-webhook/v0.0.1" },
+//                         ],
+//                     }),
+//                     createRelease: () => ({
+//                         status: 201,
+//                         data: { html_url: "qualquerurl"},
+//                     }),
+//                 },
+//             },
+//         },
+//         context: {
+//             repo: {
+//                 owner: "stone-payments",
+//                 repo: "stncard-go",
+//             },
+//         },
+//     },
+//     "card-webhook",
+//     "card-webhook/v1.0.0",
+//     "card-webhook/v1.0.18",
+//     "card-webhook/v1.0.1,card-webhook/v1.0.2,card-webhook/v1.0.3,card-webhook/v1.0.4,card-webhook/v1.0.5,card-webhook/v1.0.6,card-webhook/v1.0.7,card-webhook/v1.0.8,card-webhook/v1.0.10,card-webhook/v1.0.11,card-webhook/v1.0.12,card-webhook/v1.0.13,card-webhook/v1.0.14,card-webhook/v1.0.15,card-webhook/v1.0.16,card-webhook/v1.0.17,card-webhook/v1.0.18"
+// );
