@@ -1,6 +1,6 @@
 name: deploy staging namespace
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{inputs.NAMESPACE}}-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 run-name: deploy staging ${{ inputs.NAMESPACE }} by  @${{ github.actor }}
@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: validate namespace
         run: |
           if [[ -z "${{ inputs.NAMESPACE }}" ]]; then
