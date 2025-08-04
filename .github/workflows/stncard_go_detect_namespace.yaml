@@ -56,6 +56,10 @@ jobs:
           done
           # build JSON array
           mapfile -t uniq_ns < <(printf "%s\n" "${!ns_map[@]}" | sort)
-          NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${uniq_ns[@]}" | sed 's/,$//')")
+          if [ ${#uniq_ns[@]} -eq 0 ]; then
+            NAMESPACES="[]"
+          else
+            NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${uniq_ns[@]}" | sed 's/,$//')")
+          fi
           echo "NAMESPACES=$NAMESPACES" >> $GITHUB_OUTPUT
           echo "NAMESPACES=$NAMESPACES"

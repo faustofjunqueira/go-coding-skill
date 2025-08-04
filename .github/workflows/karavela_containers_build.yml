@@ -25,6 +25,7 @@ jobs:
     name: Go CI
     uses: ./.github/workflows/stncard_go_ci_v1.yaml
     needs: get-namespace
+    if: ${{ needs.get-namespace.outputs.NAMESPACES != '[]' }}
     strategy:
       fail-fast: true
       matrix:
