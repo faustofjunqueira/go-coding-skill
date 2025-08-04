@@ -9,7 +9,7 @@ on:
     outputs:
       NAMESPACES:
         description: "List of namespaces detected from changed files"
-        value: ${{ steps.get-namespace.outputs.NAMESPACES }}
+        value: ${{ jobs.get-namespace.outputs.NAMESPACES }}
     inputs:
       RUNS_ON:
         description: Choose runner type.
