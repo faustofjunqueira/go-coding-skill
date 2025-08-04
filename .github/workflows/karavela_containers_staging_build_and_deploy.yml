@@ -11,7 +11,7 @@ on:
       - 'main'
 
 jobs:
-  detect-namespace:
+  get-namespace:
     runs-on: ubuntu-latest
     # outputs:
     #   SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get files changed
+      - name: get files changed
         id: files-changed
         uses: tj-actions/changed-files@v45
         with:
@@ -32,7 +32,7 @@ jobs:
             .vscode/**
           separator: ","
 
-      - name: Extract Namespace by Path Changes
+      - name: get namespace
         id: extract-namespace-path
         env:
           all_changed_files_list: ${{ steps.files-changed.outputs.all_changed_files }}
@@ -54,6 +54,17 @@ jobs:
           NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${uniq_ns[@]}" | sed 's/,$//')")
           echo "NAMESPACES=$NAMESPACES" >> $GITHUB_OUTPUT
           echo "NAMESPACES=$NAMESPACES"
+  
+  deploy:
+    needs: get-namespace
+    uses: ./.github/workflows/stncard_go_deploy_stg_namespace.yaml
+    strategy:
+      fail-fast: true
+      matrix:
+        NAMESPACE: ${{ fromJson(needs.get-namespace.outputs.NAMESPACES) }}
+    with:
+      RUNS_ON: ubuntu-latest
+      NAMESPACE: ${{ matrix.NAMESPACE }}
 
 
 
