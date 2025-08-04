@@ -1,7 +1,7 @@
 name: Namespace
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.NAMESPACE }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
