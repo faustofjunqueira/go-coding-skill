@@ -28,9 +28,14 @@ jobs:
       NAMESPACE: ${{ steps.get-applications.outputs.NAMESPACE }}
       APPLICATIONS: ${{ steps.get-applications.outputs.APPLICATIONS }}
     steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
       - name: validate namespace
         run: |
-          if [[ -z "./internal/${{ inputs.NAMESPACE }}" ]]; then
+          if [[ -z "${{ inputs.NAMESPACE }}" ]]; then
             echo "NAMESPACE input is required."
             exit 1
           fi
@@ -38,11 +43,6 @@ jobs:
             echo "Error: Namespace '${{ inputs.NAMESPACE }}' does not exist."
             exit 1
           fi
-      
-      - name: checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: get applications
         id: get-applications
