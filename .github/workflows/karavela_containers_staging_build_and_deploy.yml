@@ -6,10 +6,9 @@ permissions:
   deployments: read
 
 on:
-  release:
-    types: 
-      - published
-      - edited
+  push:
+    branches:
+      - 'main'
 
 jobs:
   prepare-values:
@@ -155,7 +154,7 @@ jobs:
 
   # deploy_prd:
   #   name: Deploy prd
-  #   if: ${{ github.event.release.prerelease == false && needs.build.outputs.tag_prd_semver == 'true' }}
+  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
   #   needs: [prepare-values, approvers, deploy_sdx]
   #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
   #   strategy:

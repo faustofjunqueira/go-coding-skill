@@ -269,6 +269,8 @@ async function sendReleaseNotes(github, context, core, releaseNotes, tag) {
       return;
     }
 
+    const isPreRelease = /\/v\d+\.\d+\.\d+-/.test(tag);
+
     // cria a release no github
     const response = await github.rest.repos.createRelease({
       owner: context.repo.owner,
@@ -277,6 +279,7 @@ async function sendReleaseNotes(github, context, core, releaseNotes, tag) {
       name: `${tag}`,
       body: releaseNotes,
       draft: true,
+      prerelease: isPreRelease,
     });
 
     if (response.status != 201) {
