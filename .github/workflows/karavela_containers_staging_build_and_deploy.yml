@@ -76,7 +76,10 @@ jobs:
             NAMESPACES_LIST+=("{\"ns\": \"$namespace\", \"metadata\": $metadata}")
           done
 
-          echo "NAMESPACES=$(IFS=,; echo "[${NAMESPACES_LIST[*]}]")" >> "$GITHUB_ENV"
+          NAMESPACES=$(IFS=,; echo "[${NAMESPACES_LIST[*]}]")
+          echo "NAMESPACES=$NAMESPACES" >> "$GITHUB_ENV"
+          echo "NAMESPACES=$NAMESPACES"
+
 
 
 
