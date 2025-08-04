@@ -56,6 +56,7 @@ jobs:
           done
           # build JSON array
           mapfile -t uniq_ns < <(printf "%s\n" "${!ns_map[@]}" | sort)
+          echo "Unique namespaces: ${#uniq_ns[@]}"
           if [ ${#uniq_ns[@]} -eq 0 ]; then
             NAMESPACES="[]"
           else
