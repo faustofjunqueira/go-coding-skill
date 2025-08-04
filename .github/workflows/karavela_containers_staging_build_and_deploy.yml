@@ -39,8 +39,21 @@ jobs:
         run: |
           echo "All changed files: $all_changed_files_list"
 
-
-
+          # split on commas
+          IFS=',' read -ra FILES <<< "$all_changed_files_list"
+          declare -A ns_map
+          for f in "${FILES[@]}"; do
+            # match internal/<ns>/... or cmd/<ns>/...
+            if [[ "$f" =~ ^(internal|cmd)/([^/]+)/ ]]; then
+              ns="${BASH_REMATCH[2]}"
+              ns_map[$ns]=1
+            fi
+          done
+          # build JSON array
+          mapfile -t uniq_ns < <(printf "%s\n" "${!ns_map[@]}" | sort)
+          NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${uniq_ns[@]}" | sed 's/,$//')")
+          echo "NAMESPACES=$NAMESPACES" >> $GITHUB_OUTPUT
+          echo "NAMESPACES=$NAMESPACES"
 
 
 
