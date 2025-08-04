@@ -56,11 +56,18 @@ jobs:
           done
           # build JSON array
           mapfile -t uniq_ns < <(printf "%s\n" "${!ns_map[@]}" | sort)
-          echo "Unique namespaces: ${#uniq_ns[@]}"
-          if [ ${#uniq_ns[@]} -eq 0 ]; then
+          # Remove empty strings from uniq_ns
+          filtered_ns=()
+          for ns in "${uniq_ns[@]}"; do
+            if [[ -n "$ns" ]]; then
+              filtered_ns+=("$ns")
+            fi
+          done
+          echo "Unique namespaces: ${#filtered_ns[@]}"
+          if [ ${#filtered_ns[@]} -eq 0 ]; then
             NAMESPACES="[]"
           else
-            NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${uniq_ns[@]}" | sed 's/,$//')")
+            NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${filtered_ns[@]}" | sed 's/,$//')")
           fi
           echo "NAMESPACES=$NAMESPACES" >> $GITHUB_OUTPUT
           echo "NAMESPACES=$NAMESPACES"
