@@ -90,12 +90,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        namespace: ${{ needs.prepare-values.outputs.NAMESPACE }}
         applications: ${{ FromJson(needs.prepare-values.outputs.APPLICATIONS) }}
     steps:
       - name: Print info
         run: |
-          echo "NAMESPACE: ${{ matrix.namespace }}"
+          echo "NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}"
           echo "APPLICATIONS: ${{ matrix.applications }}"
 
   # compile:
