@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: validate namespace
         run: |
-          if [[ -z "${{ inputs.NAMESPACE }}" ]]; then
+          if [[ -z "./internal/${{ inputs.NAMESPACE }}" ]]; then
             echo "NAMESPACE input is required."
             exit 1
           fi
@@ -94,3 +94,17 @@ jobs:
       NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
       APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
     secrets: inherit
+
+  printing:
+    name: print namespace info
+    runs-on: ubuntu-latest
+    needs: [prepare-values]
+    strategy:
+      fail-fast: true
+      matrix:
+        APPLICATION: ${{ fromJson(needs.prepare-values.outputs.APPLICATIONS) }}
+    steps:
+      - name: print namespace info
+        run: |
+          echo "NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}"
+          echo "APPLICATION: ${{ matrix.APPLICATION }}"

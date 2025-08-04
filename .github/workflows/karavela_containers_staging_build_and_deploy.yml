@@ -54,6 +54,7 @@ jobs:
           echo "NAMESPACES=$NAMESPACES"
   
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.get-namespace.outputs.NAMESPACES != '[]'
     needs: get-namespace
     uses: ./.github/workflows/stncard_go_deploy_stg_namespace.yaml
     strategy:
