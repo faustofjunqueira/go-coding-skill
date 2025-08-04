@@ -1,0 +1,61 @@
+name: Namespace
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_call:
+    outputs:
+      NAMESPACES:
+        description: "List of namespaces detected from changed files"
+        value: ${{ steps.get-namespace.outputs.NAMESPACES }}
+    inputs:
+      RUNS_ON:
+        description: Choose runner type.
+        required: false
+        type: string
+        default: small-runner
+
+jobs:
+  get-namespace:
+    runs-on: ubuntu-latest
+    outputs:
+      NAMESPACES: ${{ steps.get-namespace.outputs.NAMESPACES }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: get files changed
+        id: files-changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files_ignore: |
+            .github/**
+            .git/**
+            .vscode/**
+          separator: ","
+
+      - name: get namespace
+        id: get-namespace
+        env:
+          all_changed_files_list: ${{ steps.files-changed.outputs.all_changed_files }}
+        run: |
+          echo "All changed files: $all_changed_files_list"
+
+          # split on commas
+          IFS=',' read -ra FILES <<< "$all_changed_files_list"
+          declare -A ns_map
+          for f in "${FILES[@]}"; do
+            # match internal/<ns>/... or cmd/<ns>/...
+            if [[ "$f" =~ ^(internal|cmd)/([^/]+)/ ]]; then
+              ns="${BASH_REMATCH[2]}"
+              ns_map[$ns]=1
+            fi
+          done
+          # build JSON array
+          mapfile -t uniq_ns < <(printf "%s\n" "${!ns_map[@]}" | sort)
+          NAMESPACES=$(printf '[%s]' "$(printf '"%s",' "${uniq_ns[@]}" | sed 's/,$//')")
+          echo "NAMESPACES=$NAMESPACES" >> $GITHUB_OUTPUT
+          echo "NAMESPACES=$NAMESPACES"
