@@ -13,10 +13,8 @@ on:
 jobs:
   get-namespace:
     runs-on: ubuntu-latest
-    # outputs:
-    #   SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
-    #   NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
-    #   APPLICATIONS: ${{ steps.set_output.outputs.APPLICATIONS }}
+    outputs:
+      NAMESPACE: ${{ steps.get-namespace.outputs.NAMESPACE }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,7 +31,7 @@ jobs:
           separator: ","
 
       - name: get namespace
-        id: extract-namespace-path
+        id: get-namespace
         env:
           all_changed_files_list: ${{ steps.files-changed.outputs.all_changed_files }}
         run: |
