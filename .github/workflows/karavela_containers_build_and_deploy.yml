@@ -13,6 +13,7 @@ on:
 
 jobs:
   prepare-values:
+    if: ${{ github.event.action == 'published' }}
     runs-on: ubuntu-latest
     outputs:
       SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
