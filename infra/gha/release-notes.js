@@ -276,6 +276,7 @@ async function sendReleaseNotes(github, context, core, releaseNotes, tag) {
       tag_name: tag,
       name: `${tag}`,
       body: releaseNotes,
+      draft: true,
     });
 
     if (response.status != 201) {
