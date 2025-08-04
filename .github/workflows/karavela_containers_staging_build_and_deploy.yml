@@ -11,13 +11,12 @@ on:
       - 'main'
 
 jobs:
-  prepare-values:
-    if: ${{ github.event.action == 'published' }}
+  detect-namespace:
     runs-on: ubuntu-latest
-    outputs:
-      SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
-      NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
-      APPLICATIONS: ${{ steps.set_output.outputs.APPLICATIONS }}
+    # outputs:
+    #   SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
+    #   NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
+    #   APPLICATIONS: ${{ steps.set_output.outputs.APPLICATIONS }}
     steps:
       - uses: actions/checkout@v4
         with:
