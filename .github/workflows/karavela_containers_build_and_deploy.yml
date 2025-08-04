@@ -1,130 +1,162 @@
 name: build and deploy
-run-name: ${{ inputs.namespace }} ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+run-name: deploy ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+
+permissions:
+  contents: write
+  deployments: read
 
 on:
-  workflow_dispatch:
-    inputs:
-      namespace:
-        description: 'Namespace'
-        required: true
-        type: choice
-        options:
-          - namespace
-          - beta
-          - gamma
-          - delta
-          - epsilon
-      bumpType:
-        description: 'Tipo de versão'
-        required: true
-        type: choice
-        options:
-          - major
-          - minor
-          - patch
-          - rc
-        default: minor
-      descricao_da_mudanca:
-        description: 'Descrição detalhada da mudança que será realizada'
-        required: true
-        type: string
-      objetivo_da_mudanca:
-        description: 'Objetivo e motivo da mudança'
-        required: true
-        type: string
-      plano_de_rollback:
-        description: 'Plano de rollback em caso de problemas'
-        required: true
-        type: string
-      plano_de_teste:
-        description: 'Plano de testes para validar a mudança'
-        required: true
-        type: string
-      link_do_card_no_jira:
-        description: '[opcional] Link do card no Jira'
-        required: false
-        type: string
-        default: ''
-      id_do_incidente_opsgenie:
-        description: '[opcional] ID do incidente no Opsgenie'
-        required: false
-        type: string
-        default: ''
+  release:
+    types: 
+      - published
+      - edited
 
 jobs:
-  generate-tag:
+  prepare-values:
     runs-on: ubuntu-latest
     outputs:
-      VERSION: ${{ steps.set_output.outputs.VERSION }}
-      PREVIOUS_TAG: ${{ steps.set_output.outputs.PREVIOUS_TAG }}
-      HOTFIXES: ${{ steps.set_output.outputs.HOTFIXES }}
-      TAG_PRD_SEMVER: ${{ steps.set_output.outputs.TAG_PRD_SEMVER }}
-      TAG: ${{ steps.set_output.outputs.TAG }}
+      SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
+      NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
+      APPLICATIONS: ${{ steps.set_output.outputs.PREVIOUS_TAG }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: find tag
-        id: find_tag
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          result-encoding: string
-          script: |
-            const script = require('./infra/gha/generate-tag.js')
-            console.log('Inputs:', 
-              "${{ inputs.namespace }}",
-              "${{ inputs.bumpType }}")
-            return await script.generateTag(
-              {core, context},
-              "${{ inputs.namespace }}",
-              "${{ inputs.bumpType }}",
-            )
-
-      - name: set-output
+      
+      - name: Set output values
         id: set_output
-        env:
-          RESULT: ${{ steps.find_tag.outputs.result }}
+        shell: bash
         run: |
-          echo "PREVIOUS_TAG=$(echo $RESULT | jq -r '.previousTag')" >> $GITHUB_OUTPUT
-          echo "HOTFIXES=$(echo $RESULT | jq -r '.hotfixes')" >> $GITHUB_OUTPUT
-          echo "TAG_PRD_SEMVER=$(echo $RESULT | jq -r '.tagPRD')" >> $GITHUB_OUTPUT
-          echo "VERSION=$(echo $RESULT | jq -r '.version')" >> $GITHUB_OUTPUT
-          echo "TAG=$(echo $RESULT | jq -r '.tag')" >> $GITHUB_OUTPUT
+          # release.name has form XXX/vX.Y.Z – 
+          # NAMESPACE = part before "/"
+          RELEASE_NAME="${{ github.event.release.name }}"
+          NAMESPACE="${RELEASE_NAME%%/*}"
+          VERSION="${RELEASE_NAME##*/}"
+          SHORT_TAG="$VERSION"
 
-          # Debug
-          echo "$RESULT"
-          echo "PREVIOUS_TAG=$(echo "$RESULT" | jq -r '.previousTag')"
-          echo "HOTFIXES=$(echo "$RESULT" | jq -r '.hotfixes')"
-          echo "TAG_PRD_SEMVER=$(echo "$RESULT" | jq -r '.tagPRD')"
-          echo "VERSION=$(echo "$RESULT" | jq -r '.version')"
-          echo "TAG=$(echo "$RESULT" | jq -r '.tag')"
+          # build list of applications under cmd/$NAMESPACE
+          APPS=()
+          for d in cmd/"$NAMESPACE"/*; do
+            [ -d "$d" ] || continue
+            NAME=$(basename "$d")
+            APPS+=("bank-${NAMESPACE}-${NAME}")
+          done
+          
+          # represent APPLICATIONS as a JSON array
+          APPLICATIONS="["
+          for app in "${APPS[@]}"; do
+            APPLICATIONS+="\"$app\","
+          done
+          APPLICATIONS="${APPLICATIONS%,}]"  # remove trailing comma, close array
 
-  release-notes:
-    # runs-on: small-runner
-    runs-on: ubuntu-latest
-    needs: [generate-tag]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - uses: actions/github-script@v7
-        name: create release notes
-        with:
-          github-token: ${{ secrets.TOKEN }}
-          script: |
-            const script = require('./infra/gha/release-notes.js')
-            await script(
-              {github, context, core, glob},
-              "${{ needs.prepare-tag.outputs.PREVIOUS_TAG }}",
-              "${{ github.ref_name }}",
-              "${{ inputs.descricao_da_mudanca }}",
-              "${{ inputs.objetivo_da_mudanca }}",
-              "${{ inputs.plano_de_rollback }}",
-              "${{ inputs.plano_de_teste }}",
-              "${{ inputs.link_do_card_no_jira }}",
-              "${{ inputs.id_do_incidente_opsgenie }}",
-              "${{ needs.prepare-tag.outputs.HOTFIXES }}",
-            )
+          echo "SHORT_TAG=$SHORT_TAG" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+          echo "APPLICATIONS=$APPLICATIONS" >> $GITHUB_OUTPUT
+
+      
+      - name: Validate
+        shell: bash
+        run: |
+          NAMESPACE="${{ steps.set_output.outputs.NAMESPACE }}"
+          if [ ! -d "./internal/$NAMESPACE" ]; then
+            echo "Error: $NAMESPACE' its invalid"
+            echo "::error::$NAMESPACE' its invalid"
+            exit 1
+          fi
+          APPLICATIONS="${{ steps.set_output.outputs.APPLICATIONS }}"
+          if [ -z "$APPLICATIONS" ]; then
+            echo "Error: APPLICATIONS not found"
+            echo "::error::APPLICATIONS not found"
+            exit 1
+          fi
+  
+  namespace:
+    name: show namespace info
+    uses: ./.github/workflows/stncard_go_show_namespace_info.yaml
+    needs: [prepare-values]
+    with:
+      RUNS_ON: ubuntu-latest
+      NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
+      APPLICATIONS: ${{ steps.set_output.outputs.APPLICATIONS }}
+
+  # compile:
+  #   name: Go Compile
+  #   uses: ./.github/workflows/stncard_go_build_go.yaml
+  #   with:
+  #     NAMESPACE: card-authorizer
+  #   secrets: inherit
+
+  # build:
+  #   name: Build
+  #   if: ${{ startsWith(github.ref, 'refs/heads') || startsWith(github.ref, 'refs/tags/') }}
+  #   needs: [compile, prepare-tag]
+  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_build.yml@main
+  #   with:
+  #     REGISTRY_NAME: bank-card-authorizer
+  #     ARTIFACT_NAME: ${{ needs.compile.outputs.artifact_name }}
+  #     ARTIFACT_PATH: ${{ needs.compile.outputs.artifact_dir }}
+  #     IMAGE_TAG: ${{ needs.prepare-tag.outputs.SHORT_TAG }}
+  #     CONTINUE_IF_EXISTING_IMAGE: true
+  #   secrets: inherit
+
+  # deploy_stg:
+  #   name: Deploy stg
+  #   if: ${{ startsWith(github.ref, 'refs/heads') || startsWith(github.ref, 'refs/tags/') }}
+  #   needs: [build]
+  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
+  #   strategy:
+  #     matrix:
+  #       applications: ["bank-card-authorizer-api","bank-card-authorizer-read-api"] # %%APPNAME_ARR%%
+  #   with:
+  #     APPLICATION_NAME: ${{ matrix.applications }}
+  #     ENVIRONMENT: "stg"
+  #     TARGET_REVISION: ${{ needs.build.outputs.target_revision }}
+  #     IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+  #   secrets: inherit
+
+  # deploy_sdx:
+  #   name: Deploy sdx
+  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
+  #   needs: [build, deploy_stg]
+  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
+  #   strategy:
+  #     matrix:
+  #       applications: ["bank-card-authorizer-api","bank-card-authorizer-read-api"] # %%APPNAME_ARR%%
+  #   with:
+  #     APPLICATION_NAME: ${{ matrix.applications }}
+  #     ENVIRONMENT: "sdx"
+  #     TARGET_REVISION: ${{ needs.build.outputs.target_revision }}
+  #     IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+  #   secrets: inherit
+
+  # approvers:
+  #   name: Approvers
+  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
+  #   needs: [build, deploy_sdx]
+  #   runs-on: small-runner
+  #   strategy:
+  #     matrix:
+  #       environment: [eng-prd, produto-prd]
+  #   environment:
+  #     name: ${{ matrix.environment }}
+  #   steps:
+  #     - name: Approvers
+  #       run: |
+  #         echo "${{ matrix.environment }} approved!"
+
+  # deploy_prd:
+  #   name: Deploy prd
+  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
+  #   needs: [build, prepare-tag, approvers, deploy_sdx]
+  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
+  #   strategy:
+  #     matrix:
+  #       applications: ["bank-card-authorizer-api","bank-card-authorizer-read-api"] # %%APPNAME_ARR%%
+  #   with:
+  #     APPLICATION_NAME: ${{ matrix.applications }}
+  #     ENVIRONMENT: "prd"
+  #     TARGET_REVISION: ${{ needs.build.outputs.target_revision }}
+  #     IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+  #   secrets: inherit
