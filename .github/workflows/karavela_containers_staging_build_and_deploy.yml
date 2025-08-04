@@ -59,6 +59,7 @@ jobs:
     uses: ./.github/workflows/stncard_go_deploy_stg_namespace.yaml
     strategy:
       fail-fast: true
+      max-parallel: 1
       matrix:
         NAMESPACE: ${{ fromJson(needs.get-namespace.outputs.NAMESPACES) }}
     with:
