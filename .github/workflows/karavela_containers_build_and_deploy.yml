@@ -79,8 +79,8 @@ jobs:
     needs: [prepare-values]
     with:
       RUNS_ON: ubuntu-latest
-      NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
-      APPLICATIONS: ${{ steps.set_output.outputs.APPLICATIONS }}
+      NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
+      APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
 
   # compile:
   #   name: Go Compile
