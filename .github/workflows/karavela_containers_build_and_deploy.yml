@@ -1,5 +1,5 @@
 name: build and deploy
-run-name: deploy ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
+run-name: ${{ github.event_name }} ${{ github.ref_name }} by @${{ github.actor }}
 
 permissions:
   contents: write
@@ -81,6 +81,22 @@ jobs:
       RUNS_ON: ubuntu-latest
       NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
       APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
+  
+  printing:
+    name: print info
+    if: ${{ github.event.action == 'published' }}
+    runs-on: ubuntu-latest
+    needs: [prepare-values]
+    strategy:
+      fail-fast: true
+      matrix:
+        namespace: ${{ needs.prepare-values.outputs.NAMESPACE }}
+        applications: ${{ FromJson(needs.prepare-values.outputs.APPLICATIONS) }}
+    steps:
+      - name: Print info
+        run: |
+          echo "NAMESPACE: ${{ matrix.namespace }}"
+          echo "APPLICATIONS: ${{ matrix.applications }}"
 
   # compile:
   #   name: Go Compile
