@@ -22,149 +22,65 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Set output values
-        id: set_output
-        shell: bash
+
+      - name: Get files changed
+        id: files-changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files_ignore: |
+            .github/**
+            .git/**
+            .vscode/**
+          separator: ","
+
+      - name: Extract Namespace by Path Changes
+        id: extract-namespace-path
+        env:
+          all_changed_files_list: ${{ steps.files-changed.outputs.all_changed_files }}
         run: |
-          # release.name has form XXX/vX.Y.Z – 
-          # NAMESPACE = part before "/"
-          RELEASE_NAME="${{ github.event.release.name }}"
-          NAMESPACE="${RELEASE_NAME%%/*}"
-          VERSION="${RELEASE_NAME##*/}"
-          SHORT_TAG="$VERSION"
+          matches_path() {
+            local file_path=$1
+            shift
+            local patterns=("$@")
+            for pattern in "${patterns[@]}"; do
+              if [[ $file_path =~ ${pattern//\*\*/.*} ]]; then
+                return 0
+              fi
+            done
+            return 1
+          }
 
-          # build list of applications under cmd/$NAMESPACE
-          APPS=()
-          for d in cmd/"$NAMESPACE"/*; do
-            [ -d "$d" ] || continue
-            NAME=$(basename "$d")
-            APPS+=("bank-${NAMESPACE}-${NAME}")
+          # Read and parse the namespace.json file
+          NAMESPACE_DATA=$(cat "$NAMESPACE_FILE")
+
+          # Split the files list into an array
+          IFS=',' read -r -a FILES_ARRAY <<< "$all_changed_files_list"
+
+          # Iterate over namespaces and check which files belong to which namespace
+          declare -A RESULT
+
+          for namespace in $(jq -r '.namespaces | keys[]' <<< "$NAMESPACE_DATA"); do
+            paths=$(jq -r ".namespaces[\"$namespace\"].paths[]" <<< "$NAMESPACE_DATA")
+            for file in "${FILES_ARRAY[@]}"; do
+              if matches_path "$file" $paths; then
+                RESULT["$namespace"]=1
+              fi
+            done
           done
-          
-          # represent APPLICATIONS as a JSON array
-          APPLICATIONS="["
-          for app in "${APPS[@]}"; do
-            APPLICATIONS+="\"$app\","
+
+          IFS=$'\n' sorted_namespaces=($(sort <<<"${!RESULT[*]}"))
+          unset IFS
+          NAMESPACES_LIST=()
+          for namespace in "${sorted_namespaces[@]}"; do
+            metadata=$(jq -c ".namespaces[\"$namespace\"]" <<< "$NAMESPACE_DATA")
+            NAMESPACES_LIST+=("{\"ns\": \"$namespace\", \"metadata\": $metadata}")
           done
-          APPLICATIONS="${APPLICATIONS%,}]"  # remove trailing comma, close array
+
+          echo "NAMESPACES=$(IFS=,; echo "[${NAMESPACES_LIST[*]}]")" >> "$GITHUB_ENV"
 
 
-          echo "SHORT_TAG=$SHORT_TAG" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
-          echo "APPLICATIONS=$APPLICATIONS" >> $GITHUB_OUTPUT
+
+
+
 
       
-      - name: Validate
-        shell: bash
-        run: |
-          NAMESPACE="${{ steps.set_output.outputs.NAMESPACE }}"
-          if [ ! -d "./internal/$NAMESPACE" ]; then
-            echo "Error: $NAMESPACE' its invalid"
-            echo "::error::$NAMESPACE' its invalid"
-            exit 1
-          fi
-          APPLICATIONS="${{ steps.set_output.outputs.APPLICATIONS }}"
-          if [ -z "$APPLICATIONS" ]; then
-            echo "Error: APPLICATIONS not found"
-            echo "::error::APPLICATIONS not found"
-            exit 1
-          fi
-  
-  namespace:
-    name: show namespace info
-    uses: ./.github/workflows/stncard_go_show_namespace_info.yaml
-    needs: [prepare-values]
-    with:
-      RUNS_ON: ubuntu-latest
-      NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
-      APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
-    secrets: inherit
-
-  # compile:
-  #   name: Go Compile
-  #   uses: ./.github/workflows/stncard_go_build_go.yaml
-  #   needs: [prepare-values]
-  #   with:
-  #     NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
-  #   secrets: inherit
-
-  # build:
-  #   name: Build
-  #   if: ${{ startsWith(github.ref, 'refs/heads') || startsWith(github.ref, 'refs/tags/') }}
-  #   needs: [compile, prepare-values]
-  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_build.yml@main
-  #   with:
-  #     REGISTRY_NAME: bank-${{ needs.prepare-values.outputs.NAMESPACE }}
-  #     ARTIFACT_NAME: ${{ needs.compile.outputs.artifact_name }}
-  #     ARTIFACT_PATH: ${{ needs.compile.outputs.artifact_dir }}
-  #     IMAGE_TAG: ${{ needs.prepare-values.outputs.SHORT_TAG }}
-  #     CONTINUE_IF_EXISTING_IMAGE: true
-  #   secrets: inherit
-
-  # deploy_stg:
-  #   name: Deploy stg
-  #   if: ${{ startsWith(github.ref, 'refs/heads') || startsWith(github.ref, 'refs/tags/') }}
-  #   needs: [build, prepare-values]
-  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
-  #   strategy:
-  #     matrix:
-  #       applications: ${{ fromJson(needs.prepare-values.outputs.APPLICATIONS) }}
-  #   with:
-  #     APPLICATION_NAME: ${{ matrix.applications }}
-  #     ENVIRONMENT: "stg"
-  #     TARGET_REVISION: ${{ needs.build.outputs.target_revision }}
-  #     IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-  #   secrets: inherit
-
-  # deploy_sdx:
-  #   name: Deploy sdx
-  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
-  #   needs: [build, prepare-values, deploy_stg]
-  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
-  #   strategy:
-  #     fail-fast: true
-  #     max-parallel: 2
-  #     matrix:
-  #       applications: ${{ fromJson(needs.prepare-values.outputs.APPLICATIONS) }}
-  #   with:
-  #     APPLICATION_NAME: ${{ matrix.applications }}
-  #     ENVIRONMENT: "sdx"
-  #     TARGET_REVISION: ${{ needs.build.outputs.target_revision }}
-  #     IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-  #   secrets: inherit
-
-  # approvers:
-  #   name: Approvers
-  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
-  #   needs: [deploy_sdx]
-  #   runs-on: small-runner
-  #   strategy:
-  #     fail-fast: true
-  #     max-parallel: 2
-  #     matrix:
-  #       environment: [eng-prd, produto-prd]
-  #   environment:
-  #     name: ${{ matrix.environment }}
-  #   steps:
-  #     - name: Approvers
-  #       run: |
-  #         echo "${{ matrix.environment }} approved!"
-
-  # deploy_prd:
-  #   name: Deploy prd
-  #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
-  #   needs: [prepare-values, approvers, deploy_sdx]
-  #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
-  #   strategy:
-  #     fail-fast: true
-  #     max-parallel: 2
-  #     matrix:
-  #       applications: ${{ fromJson(needs.prepare-values.outputs.APPLICATIONS) }}
-  #   with:
-  #     APPLICATION_NAME: ${{ matrix.applications }}
-  #     ENVIRONMENT: "prd"
-  #     TARGET_REVISION: ${{ needs.build.outputs.target_revision }}
-  #     IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-  #   secrets: inherit

@@ -56,6 +56,11 @@ jobs:
           echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
           echo "APPLICATIONS=$APPLICATIONS" >> $GITHUB_OUTPUT
 
+          echo "SHORT_TAG=$SHORT_TAG"
+          echo "VERSION=$VERSION"
+          echo "NAMESPACE=$NAMESPACE"
+          echo "APPLICATIONS=$APPLICATIONS"
+
       
       - name: Validate
         shell: bash
