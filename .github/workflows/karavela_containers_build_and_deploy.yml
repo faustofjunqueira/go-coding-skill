@@ -144,7 +144,7 @@ jobs:
     needs: [prepare-values]
     with:
       # RUNS_ON: small-runner
-      runs-on: ubuntu-latest
+      RUNS_ON: ubuntu-latest
       NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
       APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
     secrets: inherit
