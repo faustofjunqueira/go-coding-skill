@@ -7,34 +7,88 @@ permissions:
 
 on:
   release:
-    types: 
+    types:
       - published
       - edited
+  push:
+    branches:
+      - main
+    paths:
+      - 'cmd/**/*.go'
+      - 'internal/**/*.go'
 
 jobs:
   prepare-values:
-    if: ${{ github.event.action == 'published' }}
+    # runs-on: small-runner
     runs-on: ubuntu-latest
     outputs:
-      SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
-      NAMESPACE: ${{ steps.set_output.outputs.NAMESPACE }}
-      APPLICATIONS: ${{ steps.set_output.outputs.APPLICATIONS }}
+      SHORT_TAG: ${{ steps.get_short_tag.outputs.SHORT_TAG }}
+      NAMESPACE: ${{ steps.ns.outputs.NAMESPACE }}
+      APPLICATIONS: ${{ steps.get_apps.outputs.APPLICATIONS }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
-      - name: Set output values
-        id: set_output
+      - name: get namespace(release)
+        id: get_ns_release
         shell: bash
+        if: ${{ github.event_name == 'release' }}
         run: |
-          # release.name has form XXX/vX.Y.Z – 
+          # release.name has form XXX/vX.Y.Z –
           # NAMESPACE = part before "/"
           RELEASE_NAME="${{ github.event.release.name }}"
           NAMESPACE="${RELEASE_NAME%%/*}"
-          VERSION="${RELEASE_NAME##*/}"
-          SHORT_TAG="$VERSION"
+          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+      
+      - name: get namespace(push)
+        id: get_ns_push
+        shell: bash
+        if: ${{ startsWith(github.ref, 'refs/heads/')  }}
+        run: |
+          # namespace follow this pattern: <conventional commit message>(<namespace>): msg...
+          # Ex: ci(stncard-go): ...
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          if [[ "$COMMIT_MSG" =~ ^[a-zA-Z]+\(([a-zA-Z0-9_-]+)\): ]]; then
+            NAMESPACE="${BASH_REMATCH[1]}"
+            echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+            echo "Found namespace: $NAMESPACE from commit: $COMMIT_MSG"
+          else
+            echo "NAMESPACE=unknown" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: namespace
+        id: ns
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "NAMESPACE=${{ steps.get_ns_release.outputs.NAMESPACE }}" >> $GITHUB_OUTPUT
+          else
+            echo "NAMESPACE=${{ steps.get_ns_push.outputs.NAMESPACE }}" >> $GITHUB_OUTPUT
+          fi
 
+      - name: validate namespace
+        id: validate_ns
+        shell: bash
+        run: |
+          if [[ "${{ steps.ns.outputs.NAMESPACE }}" == "unknown" ]]; then
+            echo "NAMESPACE is unknown. Please check the commit message or release name."
+            echo "::error::NAMESPACE is unknown. Please check the commit message or release name."
+            exit 1
+          fi
+
+          if [ ! -d "./internal/${{ steps.ns.outputs.NAMESPACE }}" ]; then
+            echo "Namespace folder ./internal/${{ steps.ns.outputs.NAMESPACE }} does not exist."
+            echo "::error::Namespace folder ./internal/${{ steps.ns.outputs.NAMESPACE }} does not exist."
+            exit 1
+          fi
+
+      - name: get applications
+        id: get_apps
+        shell: bash
+        run: |
+          NAMESPACE="${{ steps.ns.outputs.NAMESPACE }}"
+          
           # build list of applications under cmd/$NAMESPACE
           APPS=()
           for d in cmd/"$NAMESPACE"/*; do
@@ -42,48 +96,55 @@ jobs:
             NAME=$(basename "$d")
             APPS+=("bank-${NAMESPACE}-${NAME}")
           done
-          
+
           # represent APPLICATIONS as a JSON array
           APPLICATIONS="["
           for app in "${APPS[@]}"; do
             APPLICATIONS+="\"$app\","
           done
+          
           APPLICATIONS="${APPLICATIONS%,}]"  # remove trailing comma, close array
+          
+          if [[ "$APPLICATIONS" == "[]" ]]; then
+            echo "No applications found under cmd/$NAMESPACE."
+            echo "::error::No applications found under cmd/$NAMESPACE."
+            exit 1
+          fi
 
-
-          echo "SHORT_TAG=$SHORT_TAG" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
           echo "APPLICATIONS=$APPLICATIONS" >> $GITHUB_OUTPUT
 
-          echo "SHORT_TAG=$SHORT_TAG"
-          echo "VERSION=$VERSION"
-          echo "NAMESPACE=$NAMESPACE"
-          echo "APPLICATIONS=$APPLICATIONS"
-
-      
-      - name: Validate
+      - name: get short tag
+        id: get_short_tag
         shell: bash
+        env:
+          SHA: ${{ github.sha }}
         run: |
-          NAMESPACE="${{ steps.set_output.outputs.NAMESPACE }}"
-          if [ ! -d "./internal/$NAMESPACE" ]; then
-            echo "Error: $NAMESPACE' its invalid"
-            echo "::error::$NAMESPACE' its invalid"
-            exit 1
+          # get short tag from the branch name or release tag
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            RELEASE_NAME="${{ github.event.release.name }}"
+            VERSION="${RELEASE_NAME##*/}"
+            # remove 'v' prefix if present
+            SHORT_TAG="${VERSION#v}"
+          else
+            SHORT_TAG="${SHA:0:7}"
           fi
-          APPLICATIONS="${{ steps.set_output.outputs.APPLICATIONS }}"
-          if [ -z "$APPLICATIONS" ]; then
-            echo "Error: APPLICATIONS not found"
-            echo "::error::APPLICATIONS not found"
-            exit 1
-          fi
-  
+
+          echo "SHORT_TAG=$SHORT_TAG" >> $GITHUB_OUTPUT
+
+      - name: show output values
+        run: |
+          echo "SHORT_TAG=${{ steps.get_short_tag.outputs.SHORT_TAG }}"
+          echo "NAMESPACE=${{ steps.ns.outputs.NAMESPACE }}"
+          echo "APPLICATIONS=${{ steps.get_apps.outputs.APPLICATIONS }}"
+
+
   namespace:
     name: show namespace info
     uses: ./.github/workflows/stncard_go_show_namespace_info.yaml
     needs: [prepare-values]
     with:
-      RUNS_ON: ubuntu-latest
+      # RUNS_ON: small-runner
+      runs-on: ubuntu-latest
       NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
       APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
     secrets: inherit
@@ -145,7 +206,8 @@ jobs:
   #   name: Approvers
   #   if: ${{ needs.build.outputs.tag_prd_semver == 'true' }}
   #   needs: [deploy_sdx]
-  #   runs-on: small-runner
+  #   # runs-on: small-runner
+  #   runs-on: ubuntu-latest
   #   strategy:
   #     fail-fast: true
   #     max-parallel: 2
@@ -161,7 +223,7 @@ jobs:
   # deploy_prd:
   #   name: Deploy prd
   #   if: ${{ github.event.release.prerelease == false && needs.build.outputs.tag_prd_semver == 'true' }}
-  #   needs: [prepare-values, approvers, deploy_sdx]
+  #   needs: [build, prepare-values, approvers, deploy_sdx]
   #   uses: stone-payments/platform-k8s-github-actions/.github/workflows/karavela_deploy.yml@main
   #   strategy:
   #     fail-fast: true

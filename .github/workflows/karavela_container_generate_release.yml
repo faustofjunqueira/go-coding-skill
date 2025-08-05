@@ -2,7 +2,7 @@ name: generate release notes
 run-name: generate release notes ${{ github.ref_name }} by @${{ github.actor }}
 
 permissions:
-  contents: write
+  contents: read
   deployments: read
 
 on:
@@ -12,8 +12,7 @@ on:
 
 jobs:
   prepare-tag:
-    # runs-on: small-runner
-    runs-on: ubuntu-latest
+    runs-on: small-runner
     outputs:
       SHORT_TAG: ${{ steps.set_output.outputs.SHORT_TAG }}
       PREVIOUS_TAG: ${{ steps.set_output.outputs.PREVIOUS_TAG }}
@@ -51,8 +50,7 @@ jobs:
           echo "SHORT_TAG=$(echo "$RESULT" | jq -r '.shortTag')"
 
   release-notes:
-    # runs-on: small-runner
-    runs-on: ubuntu-latest
+    runs-on: small-runner
     needs: [prepare-tag]
     steps:
       - uses: actions/checkout@v4
