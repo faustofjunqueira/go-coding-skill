@@ -138,16 +138,14 @@ jobs:
           echo "APPLICATIONS=${{ steps.get_apps.outputs.APPLICATIONS }}"
 
 
-  namespace:
-    name: show namespace info
-    uses: ./.github/workflows/stncard_go_show_namespace_info.yaml
-    needs: [prepare-values]
-    with:
-      # RUNS_ON: small-runner
-      RUNS_ON: ubuntu-latest
-      NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
-      APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
-    secrets: inherit
+  # namespace:
+  #   name: show namespace info
+  #   uses: ./.github/workflows/stncard_go_show_namespace_info.yaml
+  #   needs: [prepare-values]
+  #   with:
+  #     NAMESPACE: ${{ needs.prepare-values.outputs.NAMESPACE }}
+  #     APPLICATIONS: ${{ needs.prepare-values.outputs.APPLICATIONS }}
+  #   secrets: inherit
 
   # compile:
   #   name: Go Compile
