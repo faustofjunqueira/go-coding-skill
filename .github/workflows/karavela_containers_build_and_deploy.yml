@@ -35,6 +35,7 @@ jobs:
         shell: bash
         if: ${{ github.event_name == 'release' }}
         run: |
+          echo "Ref Name = ${{ github.ref_name }}"
           # release.name has form XXX/vX.Y.Z –
           # NAMESPACE = part before "/"
           RELEASE_NAME="${{ github.event.release.name }}"
